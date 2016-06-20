@@ -182,6 +182,11 @@ private_lane :ftp do |options|
   xcodeproj_name = ENV['XCODEPROJ_NAME']
   team_id = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
 
+  @ftp_host = ENV['FTP_HOST']
+  @ftp_port = ENV['FTP_PORT']
+  @ftp_user = ENV['FTP_USER']
+  @ftp_password = ENV['FTP_PASSWORD']
+
   # Reset and clean working copy if needed
   skip_reset = options[:skip_reset]
   if !skip_reset
@@ -227,7 +232,11 @@ private_lane :ftp do |options|
                   name: @name,
                   build_version: build_version,
                   baseurl: baseurl,
-                  ftp_path: ftp_path
+                  ftp_path: ftp_path,
+                  ftp_host: @ftp_host,
+                  ftp_port: @ftp_port,
+                  ftp_user: @ftp_user,
+                  ftp_password: @ftp_password
   )
   
   # Adding git tags

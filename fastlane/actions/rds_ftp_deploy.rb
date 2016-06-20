@@ -24,6 +24,11 @@ module Fastlane
         @baseurl = Pathname(params[:baseurl]).join(params[:ftp_path])
         @ftp_dir = FTP_ROOT_DIR + "/#{params[:ftp_path]}"
 
+        @ftp_host = params[:ftp_host]
+        @ftp_port = params[:ftp_port]
+        @ftp_user = params[:ftp_user]
+        @ftp_password = params[:ftp_password]
+
         # Подключаемся к серверу
         connect_to_ftp
         create_server_structure_if_needed
@@ -184,8 +189,8 @@ module Fastlane
       def self.connect_to_ftp
         @ftp = Net::FTP.new
         @ftp.passive = true
-        @ftp.connect(FTP_HOST, FTP_PORT)
-        @ftp.login(FTP_USER, FTP_PASSWORD)
+        @ftp.connect(@ftp_host, @ftp_port)
+        @ftp.login(@ftp_user, @ftp_password)
       end
 
 
