@@ -248,6 +248,22 @@ module Fastlane
             FastlaneCore::ConfigItem.new(key: :ftp_path,
                                          env_name: "FL_RDS_FTP_DEPLOY_PATH",
                                          description: "FTP path",
+                                         is_string: true),
+            FastlaneCore::ConfigItem.new(key: :ftp_host,
+                                         env_name: "FL_RDS_FTP_DEPLOY_HOST",
+                                         description: "FTP host",
+                                         is_string: true),
+            FastlaneCore::ConfigItem.new(key: :ftp_port,
+                                         env_name: "FL_RDS_FTP_DEPLOY_PORT",
+                                         description: "FTP port",
+                                         is_string: true),
+            FastlaneCore::ConfigItem.new(key: :ftp_user,
+                                         env_name: "FL_RDS_FTP_DEPLOY_USER",
+                                         description: "FTP user",
+                                         is_string: true),
+            FastlaneCore::ConfigItem.new(key: :ftp_password,
+                                         env_name: "FL_RDS_FTP_DEPLOY_PASSWORD",
+                                         description: "FTP password",
                                          is_string: true)
         ]
       end
