@@ -169,6 +169,18 @@ lane :staging do |options|
   @result = "#{@name} #{current_version}.#{current_build} (staging) uploaded to Fabric and TestFlight"
 end
 
+desc "Run tests"
+lane :build_test do
+  output_directory = 'build/reports'
+
+  scan(
+    output_directory: output_directory,
+    skip_slack: true
+  )
+
+  sh "mv ../#{output_directory}/*.junit ../#{output_directory}/report.xml"
+end
+
 ######################### PRIVATE LANES #########################
 
 desc "Prepares ipa file and uploads it to RDS FTP server"
