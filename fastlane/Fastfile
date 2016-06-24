@@ -122,7 +122,7 @@ lane :testing do |options|
   post_upload_action(options)
 
   # Setting output message
-  @result = "#{@name} #{current_version}.#{current_build} (testing) uploaded to Fabric"
+  @result = "#{@name} #{current_version}.#{incremented_build} (testing) uploaded to Fabric"
 end
 
 desc "Prepares a new release and submits it for testers via Fabric and Testflight"
@@ -166,7 +166,7 @@ lane :staging do |options|
   post_upload_action(options)
 
   # Setting output message
-  @result = "#{@name} #{current_version}.#{current_build} (staging) uploaded to Fabric and TestFlight"
+  @result = "#{@name} #{current_version}.#{incremented_build} (staging) uploaded to Fabric and TestFlight"
 end
 
 ######################### PRIVATE LANES #########################
