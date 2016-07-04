@@ -236,7 +236,7 @@ private_lane :ftp do |options|
   rds_ftp_deploy(ipa_path: ipa_path,
                   app_identifier: @app_identifier,
                   name: @name,
-                  build_version: "#{current_version}.#{current_build}",
+                  build_version: "#{version_number}.#{current_build}",
                   baseurl: baseurl,
                   ftp_path: ftp_path,
                   ftp_host: @ftp_host,
