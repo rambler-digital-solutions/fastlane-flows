@@ -226,11 +226,17 @@ private_lane :ftp do |options|
   ipa_path = lane_context[SharedValues::IPA_OUTPUT_PATH]
   baseurl = ENV['DEPLOY_BASEURL']
   ftp_path = options[:ftp_path]
+
   version_number = options[:version_number]
+  current_build = get_info_plist_value(
+    path: ENV['INFO_PLIST_PATH'],
+    key: 'CFBundleVersion'
+  )
+
   rds_ftp_deploy(ipa_path: ipa_path,
                   app_identifier: @app_identifier,
                   name: @name,
-                  build_version: version_number,
+                  build_version: "#{current_version}.#{current_build}",
                   baseurl: baseurl,
                   ftp_path: ftp_path,
                   ftp_host: @ftp_host,
