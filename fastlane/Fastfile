@@ -226,11 +226,11 @@ private_lane :ftp do |options|
   ipa_path = lane_context[SharedValues::IPA_OUTPUT_PATH]
   baseurl = ENV['DEPLOY_BASEURL']
   ftp_path = options[:ftp_path]
-  build_version = get_version_number(xcodeproj: xcodeproj_name)
+  version_number = options[:version_number]
   rds_ftp_deploy(ipa_path: ipa_path,
                   app_identifier: @app_identifier,
                   name: @name,
-                  build_version: build_version,
+                  build_version: version_number,
                   baseurl: baseurl,
                   ftp_path: ftp_path,
                   ftp_host: @ftp_host,
