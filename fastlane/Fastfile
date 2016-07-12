@@ -26,7 +26,7 @@ lane :in_house do |options|
   # Setting up a new version
   current_version = get_version_number(xcodeproj: ENV['XCODEPROJ_NAME'])
   current_build = get_info_plist_value(
-    path: ENV['INFO_PLIST_PATH'],
+    path: get_info_plist_path(),
     key: 'CFBundleVersion'
   )
   options[:version_number] = current_version
@@ -70,7 +70,7 @@ lane :nightly do |options|
   # Setting up a new version
   current_version = get_version_number(xcodeproj: ENV['XCODEPROJ_NAME'])
   current_build = get_info_plist_value(
-    path: ENV['INFO_PLIST_PATH'],
+    path: get_info_plist_path(),
     key: 'CFBundleVersion'
   )
   options[:version_number] = current_version
@@ -99,7 +99,7 @@ lane :testing do |options|
   # Setting up git tag as 'testing/3.0.0/56'
   current_version = get_version_number(xcodeproj: ENV['XCODEPROJ_NAME'])
   current_build = get_info_plist_value(
-    path: ENV['INFO_PLIST_PATH'],
+    path: get_info_plist_path(),
     key: 'CFBundleVersion'
   )
   incremented_build = current_build.to_i + 1
@@ -145,7 +145,7 @@ lane :staging do |options|
   # Setting up git tag as 'staging/3.0.0/56'
   current_version = get_version_number(xcodeproj: ENV['XCODEPROJ_NAME'])
   current_build = get_info_plist_value(
-    path: ENV['INFO_PLIST_PATH'],
+    path: get_info_plist_path(),
     key: 'CFBundleVersion'
   )
   incremented_build = current_build.to_i + 1
@@ -229,7 +229,7 @@ private_lane :ftp do |options|
 
   version_number = options[:version_number]
   current_build = get_info_plist_value(
-    path: ENV['INFO_PLIST_PATH'],
+    path: get_info_plist_path(),
     key: 'CFBundleVersion'
   )
 
@@ -262,7 +262,7 @@ private_lane :fabric do |options|
   # Getting version number
   version_number = options[:version_number]
   build_number = get_info_plist_value(
-    path: ENV['INFO_PLIST_PATH'],
+    path: get_info_plist_path(),
     key: 'CFBundleVersion'
   )
 
@@ -355,7 +355,7 @@ def pre_upload_action(options)
 
   # Updates version and build numbers
   current_build = get_info_plist_value(
-    path: ENV['INFO_PLIST_PATH'],
+    path: get_info_plist_path(),
     key: 'CFBundleVersion'
   )
   build_number = current_build.to_i + 1
@@ -457,7 +457,7 @@ def update_build_and_version_number_with_extensions(options,build_number)
   version_number = options[:version_number]
 
   if extension_plists == nil
-    extension_plists = [ENV['INFO_PLIST_PATH']]
+    extension_plists = [get_info_plist_path()]
   end
 
   extension_plists.each { |extension_plist|
@@ -489,4 +489,8 @@ def jira_only_changelog(tag_match_pattern)
       "https://jira.rambler.ru/browse/#{message.match(regexp)[1]}"
     }
     messages.count > 0 ? messages.join("\n") : "Нет закрытых JIRA-тасков"
+end
+
+def get_info_plist_path
+  File.join(ENV['XCODEPROJ_NAME'], '..', ENV['INFO_PLIST_PATH'])
 end
