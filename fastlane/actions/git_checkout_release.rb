@@ -12,7 +12,7 @@ module Fastlane
         result_branch = ""
         
         Actions.sh("git fetch")
-        branch_list = Actions.sh("git branch")
+        branch_list = Actions.sh("git branch -a")
 
         
         result_branch = release_branch if branch_list.include? release_branch
