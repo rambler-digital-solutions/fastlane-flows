@@ -382,7 +382,13 @@ def pre_upload_action(options)
   )
 
   # Collecting a full changelog consisting of JIRA tasks
-  @jira_changelog = "Список изменений:\n#{jira_only_changelog(options[:tag_match_pattern])}"
+  jira_project = options[:jira_project]
+  if jira_project
+    changelog = jira_only_changelog(options[:tag_match_pattern],
+                                    options[:jira_project])
+    @jira_changelog = "List of changes:\n#{changelog}"
+  end
+
 end
 
 def post_upload_action(options)
@@ -396,17 +402,34 @@ def post_upload_action(options)
     Actions.lane_context[SharedValues::BUILD_NUMBER]
   )
   commit_version_bump(
-    message: "Увеличен номер версии до #{complete_version_number}",
+    message: "Bumped version number tо #{complete_version_number}",
     xcodeproj: ENV['XCODEPROJ_NAME'],
     force: true
   )
 
-  # Добавляем теги
+  # Add tag to git
   tags = options[:tags]
   multiple_tags(tags: tags)
   
   branch = options[:branch]
   sh("git push -uf origin #{branch}")
+
+  # Move issues in jira
+  jira_project = options[:jira_project]
+  jira_work_flow = options[:jira_work_flow]
+  if jira_project and jira_work_flow
+    issues = jira_issues(options[:tag_match_pattern],
+                         options[:jira_project])
+    jira_options = {
+      :issue_ids            => issues,
+      :jira_username        => options[:jira_username],
+      :jira_password        => options[:jira_password],
+      :jira_host            => options[:jira_host],
+      :jira_transition_name => jira_project,
+    }
+    jira_work_flow(jira_options)
+  end
+
 end
 
 ######################### POST ACTIONS #########################
@@ -486,21 +509,36 @@ def update_build_and_version_number_with_extensions(options,build_number)
     }
 end
 
-def jira_only_changelog(tag_match_pattern)
+def jira_only_changelog(tag_match_pattern, jira_project)
   raw_changelog = changelog_from_git_commits(
       tag_match_pattern: tag_match_pattern,
       merge_commit_filtering: "exclude_merges"
   )
   return "empty" unless raw_changelog != nil
 
-  regexp = Regexp.new('(LJIOS-[0-9]*)').freeze
+  regexp = Regexp.new('(#{jira_project}-[0-9]*)').freeze
 
     messages = raw_changelog.split("\n").select { |message|
       message.match(regexp)
     }.map { |message|
       "https://jira.rambler.ru/browse/#{message.match(regexp)[1]}"
     }
-    messages.count > 0 ? messages.join("\n") : "Нет закрытых JIRA-тасков"
+    messages.count > 0 ? messages.join("\n") : "No closed JIRA-issues"
+end
+
+def jira_issues(tag_match_pattern, jira_project)
+  raw_changelog = changelog_from_git_commits(
+      tag_match_pattern: tag_match_pattern,
+      merge_commit_filtering: "exclude_merges"
+  )
+  return nil unless raw_changelog != nil
+  regexp = Regexp.new('(#{jira_project}-[0-9]*)').freeze
+  messages = raw_changelog.split("\n").select { |message|
+    message.match(regexp)
+  }.map { |message|
+    message.match(regexp)[1]
+  }
+  return messages
 end
 
 def get_info_plist_path
