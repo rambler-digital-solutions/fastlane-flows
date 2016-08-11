@@ -433,27 +433,31 @@ end
 
 ######################### POST ACTIONS #########################
 
-after_all do |lane|
-  # Posting to a telegram chat
-  telegram(text: "#{@result}")
+after_all do |lane, options|
+  if is_ci? and options[:skip_slack] == false
+    # Posting to a telegram chat
+    telegram(text: "#{@result}")
 
-  # Posting to Slack
-  slack(
-      message: "#{@result}",
-      success: true
-  )
+    # Posting to Slack
+    slack(
+        message: "#{@result}",
+        success: true
+    )
+  end
 end
 
-error do |lane, exception|
-  # Posting to a telegram chat
-  telegram(text: "#{@name}: fail")
-  telegram(text: "exception: #{exception.to_s}")
+error do |lane, options, exception|
+  if is_ci? and options[:skip_slack] == false
+    # Posting to a telegram chat
+    telegram(text: "#{@name}: fail")
+    telegram(text: "exception: #{exception.to_s}")
 
-  # Posting to Slack
-  slack(
-      message: "#{@name}: fail\nexception: #{exception.to_s}",
-      success: false
-  )
+    # Posting to Slack
+    slack(
+        message: "#{@name}: fail\nexception: #{exception.to_s}",
+        success: false
+    )
+  end
 end
 
 ############################# UTIL ##############################
