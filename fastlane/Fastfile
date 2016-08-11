@@ -519,7 +519,7 @@ def jira_only_changelog(tag_match_pattern, jira_project)
   )
   return "empty" unless raw_changelog != nil
 
-  regexp = Regexp.new('(#{jira_project}-[0-9]*)').freeze
+  regexp = Regexp.new("(#{jira_project}-[0-9]*)").freeze
 
     messages = raw_changelog.split("\n").select { |message|
       message.match(regexp)
@@ -535,7 +535,7 @@ def jira_issues(tag_match_pattern, jira_project)
       merge_commit_filtering: "exclude_merges"
   )
   return nil unless raw_changelog != nil
-  regexp = Regexp.new('(#{jira_project}-[0-9]*)').freeze
+  regexp = Regexp.new("(#{jira_project}-[0-9]*)").freeze
   messages = raw_changelog.split("\n").select { |message|
     message.match(regexp)
   }.map { |message|
