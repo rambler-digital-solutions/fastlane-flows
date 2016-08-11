@@ -38,7 +38,7 @@ module Fastlane
         transitions = @client.Transition.all(issue: issue)
         transition = transitions.find{ |elem| elem.name == transition_name }
         if !transition
-          puts "Cant move issue #{issue_id} to #{transition_name}"
+          puts "Can't move issue #{issue_id} to #{transition_name}"
           return
         end
 
