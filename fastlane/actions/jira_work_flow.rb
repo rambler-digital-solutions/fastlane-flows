@@ -20,7 +20,7 @@ module Fastlane
 
         # Authorization
         params[:issue_ids].each do |issue_id|
-          move_issue(issue_id, params[:jira_host])
+          move_issue(issue_id, params[:jira_transition_name])
         end
 
       end
