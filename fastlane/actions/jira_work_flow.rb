@@ -58,7 +58,7 @@ module Fastlane
           FastlaneCore::ConfigItem.new(key: :issue_ids,
                                        env_name: "FL_RDS_JIRA_ISSUE_IDS",
                                        description: "Path to ipa file",
-                                       is_string: true),
+                                       is_string: false),
           FastlaneCore::ConfigItem.new(key: :jira_username,
                                        env_name: "FL_RDS_JIRA_USERNAME",
                                        description: "Jira username",
