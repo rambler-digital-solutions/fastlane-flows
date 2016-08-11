@@ -382,10 +382,10 @@ def pre_upload_action(options)
   )
 
   # Collecting a full changelog consisting of JIRA tasks
-  jira_project = options[:jira_project]
+  jira_project = ENV['JIRA_PROJECT']
   if jira_project
     changelog = jira_only_changelog(options[:tag_match_pattern],
-                                    options[:jira_project])
+                                    jira_project)
     @jira_changelog = "List of changes:\n#{changelog}"
   end
 
@@ -415,16 +415,15 @@ def post_upload_action(options)
   sh("git push -uf origin #{branch}")
 
   # Move issues in jira
-  jira_project = options[:jira_project]
-  jira_work_flow = options[:jira_work_flow]
-  if jira_project and jira_work_flow
+  jira_project = ENV['JIRA_PROJECT']
+  if jira_project
     issues = jira_issues(options[:tag_match_pattern],
-                         options[:jira_project])
+                         jira_project)
     jira_options = {
       :issue_ids            => issues,
-      :jira_username        => options[:jira_username],
-      :jira_password        => options[:jira_password],
-      :jira_host            => options[:jira_host],
+      :jira_username        => ENV['JIRA_USERNAME'],
+      :jira_password        => ENV['jira_PASSWORD'],
+      :jira_host            => ENV['JIRA_HOST'],
       :jira_transition_name => jira_project,
     }
     jira_work_flow(jira_options)
