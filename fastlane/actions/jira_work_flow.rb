@@ -45,7 +45,7 @@ module Fastlane
         # Perform Transition
         new_transition = issue.transitions.build
         new_transition.save!("transition" => {"id" => transition.id})
-        puts 'Move issue #{issue_id} to #{transition_name}'
+        puts "Move issue #{issue_id} to #{transition_name}"
 
       end
 
