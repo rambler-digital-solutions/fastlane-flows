@@ -16,7 +16,7 @@ module Fastlane
         }
         @client = JIRA::Client.new(options)
 
-        puts 'Jira issues #{params[:issue_ids]}'
+        puts "Jira issues #{params[:issue_ids]}"
 
         # Authorization
         params[:issue_ids].each do |issue_id|
@@ -30,7 +30,7 @@ module Fastlane
         # Find Issue
         issue = @client.Issue.find(issue_id)
         if !issue
-          puts 'Issue #{issue_id} not found'
+          puts "Issue #{issue_id} not found"
           return
         end
 
@@ -38,7 +38,7 @@ module Fastlane
         transitions = @client.Transition.all(issue: issue)
         transition = transitions.find{ |elem| elem.name == transition_name }
         if !transition
-          puts 'Cant move issue #{issue_id} to #{transition_name}'
+          puts "Cant move issue #{issue_id} to #{transition_name}"
           return
         end
 
