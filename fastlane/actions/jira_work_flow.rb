@@ -16,6 +16,8 @@ module Fastlane
         }
         @client = JIRA::Client.new(options)
 
+        puts 'Jira issues #{params[:issue_ids]}'
+
         # Authorization
         params[:issue_ids].each do |issue_id|
           move_issue(issue_id, params[:jira_host])
@@ -43,6 +45,7 @@ module Fastlane
         # Perform Transition
         new_transition = issue.transitions.build
         new_transition.save!("transition" => {"id" => transition.id})
+        puts 'Move issue #{issue_id} to #{transition_name}'
 
       end
 
