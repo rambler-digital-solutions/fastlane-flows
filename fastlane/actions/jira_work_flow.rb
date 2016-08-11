@@ -14,7 +14,7 @@ module Fastlane
           :context_path => '',
           :auth_type    => :basic
         }
-        @client = DropboxClient.new(token)
+        @client = JIRA::Client.new(options)
 
         # Authorization
         params[:issue_ids].each do |issue_id|
