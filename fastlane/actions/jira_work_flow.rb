@@ -18,8 +18,9 @@ module Fastlane
 
         puts "Jira issues #{params[:issue_ids]}"
 
-        # Authorization
-        params[:issue_ids].each do |issue_id|
+        # Move
+        issues = params[:issue_ids].uniq
+        issues.each do |issue_id|
           move_issue(issue_id, params[:jira_transition_name])
         end
 
