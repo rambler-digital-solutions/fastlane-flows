@@ -422,7 +422,7 @@ def post_upload_action(options)
     jira_options = {
       :issue_ids            => issues,
       :jira_username        => ENV['JIRA_USERNAME'],
-      :jira_password        => ENV['jira_PASSWORD'],
+      :jira_password        => ENV['JIRA_PASSWORD'],
       :jira_host            => ENV['JIRA_HOST'],
       :jira_transition_name => ENV['JIRA_TRANSITION_NAME'],
     }
