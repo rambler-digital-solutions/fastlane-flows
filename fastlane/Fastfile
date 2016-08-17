@@ -434,8 +434,7 @@ end
 ######################### POST ACTIONS #########################
 
 after_all do |lane, options|
-  skip_slack = options.has_key?(:skip_slack) && options[:skip_slack]
-  if is_ci? && skip_slack == false
+  if is_ci?
     # Posting to a telegram chat
     telegram(text: "#{@result}")
 
@@ -447,9 +446,8 @@ after_all do |lane, options|
   end
 end
 
-error do |lane, options, exception|
-  skip_slack = options.has_key?(:skip_slack) && options[:skip_slack]
-  if is_ci? && skip_slack == false
+error do |lane, exception|
+  if is_ci?
     # Posting to a telegram chat
     telegram(text: "#{@name}: fail")
     telegram(text: "exception: #{exception.to_s}")
