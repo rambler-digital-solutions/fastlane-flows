@@ -208,6 +208,12 @@ private_lane :ftp do |options|
   # Checking out the passed branch
   git_checkout(remote_branch: branch)
 
+  team_id = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
+  update_project_team(
+      path: ENV['XCODEPROJ_NAME'],
+      teamid: team_id
+  )
+
   # Refreshing provisioning profile
   extension_ids = options[:extension_identifiers]
   if extension_ids != nil
