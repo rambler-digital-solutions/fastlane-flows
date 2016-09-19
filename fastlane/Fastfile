@@ -230,8 +230,8 @@ private_lane :ftp do |options|
   gym(
     workspace: ENV['XCWORKSPACE_NAME'],
     scheme: ENV['SCHEME'],
-    use_legacy_build_api: true,
-    export_method: 'enterprise'
+    export_method: 'enterprise',
+    xcargs: "DEVELOPMENT_TEAM=#{team_id}",
   )
 
   # Uploading to FTP
