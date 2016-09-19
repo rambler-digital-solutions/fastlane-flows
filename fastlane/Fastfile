@@ -237,7 +237,7 @@ private_lane :ftp do |options|
     workspace: ENV['XCWORKSPACE_NAME'],
     scheme: ENV['SCHEME'],
     export_method: 'enterprise',
-    xcargs: "DEVELOPMENT_TEAM=#{team_id}",
+    export_team_id: team_id
   )
 
   # Uploading to FTP
