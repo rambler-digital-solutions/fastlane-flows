@@ -470,7 +470,7 @@ def make_provisioning_profiles_all_right(options, adhoc, configuration = 'Releas
   target_patterns = options[:target_patterns]
   app_plists = options[:app_plists]
   app_ids.zip(target_patterns, app_plists) { |app_id, target_pattern, app_plist|
-    provisioning_name = provisioning_name(app_id)
+    provisioning_name = "#{provisioning_name(app_id)}.mobileprovision"
 
     sigh(
       app_identifier: app_id, 
@@ -563,7 +563,7 @@ def provisioning_name(app_identifier = nil)
   app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier) unless app_identifier
   team_id = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
   
-  "#{app_identifier}_#{team_id}.mobileprovision"
+  "#{app_identifier}_#{team_id}"
 end
 
 def xcode_args(options)
