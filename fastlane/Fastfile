@@ -234,6 +234,7 @@ private_lane :ftp do |options|
     export_method: 'enterprise',
     codesigning_identity: @team_name,
     xcargs: xcode_args(options),
+    disable_xcpretty: true
   )
 
   # Uploading to FTP
@@ -296,6 +297,7 @@ private_lane :fabric do |options|
     clean: true,
     codesigning_identity: @team_name,
     xcargs: xcode_args(options),
+    disable_xcpretty: true
   )
 
   # Setting up testers groups for notifications
@@ -332,6 +334,7 @@ private_lane :apple_testflight do |options|
     clean: true,
     codesigning_identity: @team_name,
     xcargs: xcode_args(options),
+    disable_xcpretty: true
   )
 
   # Uploading the final IPA file to Testflight (without distribution)
@@ -464,7 +467,7 @@ def version_string(version_number, build_number)
   "#{version_number}(#{build_number})"
 end
 
-def make_provisioning_profiles_all_right(options, adhoc, configuration = 'Release')
+def make_provisioning_profiles_all_right(options, adhoc)
   team_id = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
   app_ids = options[:app_identifiers]
   target_patterns = options[:target_patterns]
@@ -479,8 +482,7 @@ def make_provisioning_profiles_all_right(options, adhoc, configuration = 'Releas
 
     rds_update_project_provisioning(
       xcodeproj: ENV['XCODEPROJ_NAME'],
-      target_filter: target_pattern,
-      build_configuration: configuration
+      target_filter: target_pattern
     )
     
     update_app_identifier(
