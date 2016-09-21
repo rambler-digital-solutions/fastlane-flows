@@ -570,10 +570,6 @@ def xcode_args(options)
   team_name = CredentialsManager::AppfileConfig.try_fetch_value(:team_name)
   team_id = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
   xcargs = "DEVELOPMENT_TEAM=#{team_id}"
-  if options[:app_identifiers].count == 1
-    xcargs << " PROVISIONING_PROFILE_SPECIFIER=#{provisioning_name}" 
-  else
-    xcargs << " CODE_SIGN_IDENTITY=#{team_name.shellescape}" 
-  end
+  xcargs << " CODE_SIGN_IDENTITY=#{team_name.shellescape}" if options[:app_identifiers].count > 1
   xcargs
 end
