@@ -38,6 +38,9 @@ lane :in_house do |options|
   # Setting up the folder for FTP upload
   options[:ftp_path] = 'dev'
 
+  # Setting up app options
+  setting_app_options(options)
+
   # Switching to ftp lane
   ftp(options)
 
@@ -82,6 +85,9 @@ lane :nightly do |options|
   # Setting up the folder for FTP upload
   options[:ftp_path] = 'nightly'
 
+  # Setting up app options
+  setting_app_options(options)
+
   # Switching to ftp lane only if there were any changes
   unless changelog.empty?
     ftp(options)
@@ -116,6 +122,9 @@ lane :testing do |options|
   # Setting up rules for changelog collecting
   options[:tag_match_pattern] = "testing/*"
 
+  # Setting up app options
+  setting_app_options(options)
+
   # Switching to Fabric lane
   pre_upload_action(options)
   fabric(options)
@@ -127,7 +136,6 @@ end
 
 desc "Prepares a new release and submits it for testers via Fabric and Testflight"
 lane :staging do |options|
-
   # Reset and clean working copy if needed
   skip_reset = options[:skip_reset]
   if !skip_reset
@@ -158,6 +166,9 @@ lane :staging do |options|
 
   # Setting up rules for changelog collecting
   options[:tag_match_pattern] = "staging/*"
+
+  # Setting up app options
+  setting_app_options(options)
 
   # Switching to Testflight and Fabric lanes
   pre_upload_action(options)
@@ -208,24 +219,8 @@ private_lane :ftp do |options|
   # Checking out the passed branch
   git_checkout(remote_branch: branch)
 
-  team_id = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
-  update_project_team(
-      path: ENV['XCODEPROJ_NAME'],
-      teamid: team_id
-  )
-
   # Refreshing provisioning profile
-  extension_ids = options[:extension_identifiers]
-  if extension_ids != nil
-    make_provisioning_profiles_all_right('Release',options,false)
-  else
-    update_app_identifier(
-      xcodeproj: ENV['XCODEPROJ_NAME'],
-      app_identifier: @app_identifier,
-      plist_path: ENV['INFO_PLIST_PATH']
-    )
-    sigh(team_id: team_id)
-  end
+  make_provisioning_profiles_all_right(options, false)
 
   # Setting up the icon badge
   shield_text = options[:shield_text]
@@ -237,7 +232,8 @@ private_lane :ftp do |options|
     workspace: ENV['XCWORKSPACE_NAME'],
     scheme: ENV['SCHEME'],
     export_method: 'enterprise',
-    export_team_id: team_id
+    codesigning_identity: @team_name,
+    xcargs: xcode_args(options),
   )
 
   # Uploading to FTP
@@ -290,19 +286,16 @@ private_lane :fabric do |options|
   badge(shield: shield_data, dark: true)
 
   # Refreshing provisioning profile
-  extension_ids = options[:extension_identifiers]
-  if extension_ids != nil
-    make_provisioning_profiles_all_right('Release',options,true)
-  else
-    sigh(adhoc: true)
-  end
+  make_provisioning_profiles_all_right(options, true)
   
   # Building the ipa file
   gym(
     workspace: ENV['XCWORKSPACE_NAME'],
     scheme: ENV['SCHEME'],
     configuration: "Release",
-    clean: true
+    clean: true,
+    codesigning_identity: @team_name,
+    xcargs: xcode_args(options),
   )
 
   # Setting up testers groups for notifications
@@ -329,19 +322,16 @@ end
 desc "Prepares the build and uploads it to Testflight"
 private_lane :apple_testflight do |options|
   # Refreshing provisioning profile
-  extension_ids = options[:extension_identifiers]
-  if extension_ids != nil
-    make_provisioning_profiles_all_right('Release',options,true)
-  else
-    sigh
-  end
+  make_provisioning_profiles_all_right(options, true)
   
   # Building the ipa file
   gym(
     workspace: ENV['XCWORKSPACE_NAME'],
     scheme: ENV['SCHEME'],
     configuration: "Release",
-    clean: true
+    clean: true,
+    codesigning_identity: @team_name,
+    xcargs: xcode_args(options),
   )
 
   # Uploading the final IPA file to Testflight (without distribution)
@@ -355,7 +345,6 @@ end
 ###################### LANE DECOMPOSITION ######################
 
 def pre_upload_action(options)
-
   # Reset and clean working copy if needed
   skip_reset = options[:skip_reset]
   if !skip_reset
@@ -394,7 +383,6 @@ def pre_upload_action(options)
                                     jira_project)
     @jira_changelog = "List of changes:\n#{changelog}"
   end
-
 end
 
 def post_upload_action(options)
@@ -439,7 +427,6 @@ def post_upload_action(options)
     }
     jira_work_flow(jira_options)
   end
-
 end
 
 ######################### POST ACTIONS #########################
@@ -477,50 +464,55 @@ def version_string(version_number, build_number)
   "#{version_number}(#{build_number})"
 end
 
-def make_provisioning_profiles_all_right(configuration,options,adhoc)
+def make_provisioning_profiles_all_right(options, adhoc, configuration = 'Release')
   team_id = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
-  extension_ids = options[:extension_identifiers]
-  extension_patterns = options[:extension_patterns]
-  extension_plists = options[:extension_plists]
-  extension_ids.zip(extension_patterns, extension_plists) { |extension_id,extension_pattern,extension_plist|
-    sigh(app_identifier: extension_id, output_path: "/tmp", adhoc: adhoc)
-    update_project_provisioning(
+  app_ids = options[:app_identifiers]
+  target_patterns = options[:target_patterns]
+  app_plists = options[:app_plists]
+  app_ids.zip(target_patterns, app_plists) { |app_id, target_pattern, app_plist|
+    provisioning_name = provisioning_name(app_id)
+
+    sigh(
+      app_identifier: app_id, 
+      output_path: "/tmp",
+      adhoc: adhoc,
+      provisioning_name: provisioning_name
+    )
+
+    rds_update_project_provisioning(
       xcodeproj: ENV['XCODEPROJ_NAME'],
-      target_filter: extension_pattern,
+      target_filter: target_pattern,
       build_configuration: configuration
     )
+    
     update_app_identifier(
       xcodeproj: ENV['XCODEPROJ_NAME'],
-      app_identifier: extension_id,
-      plist_path: extension_plist
-    )
-    update_project_team(
-      path: ENV['XCODEPROJ_NAME'],
-      teamid: team_id
+      app_identifier: app_id,
+      plist_path: app_plist
     )
   }
 end
 
-def update_build_and_version_number_with_extensions(options,build_number)
-  extension_plists = options[:extension_plists]
+def update_build_and_version_number_with_extensions(options, build_number)
+  app_plists = options[:app_plists]
   version_number = options[:version_number]
 
-  if extension_plists == nil
-    extension_plists = [get_info_plist_path()]
+  if app_plists == nil
+    app_plists = [get_info_plist_path()]
   end
 
-  extension_plists.each { |extension_plist|
-      set_info_plist_value(
-        path: extension_plist,
-        key: 'CFBundleVersion',
-        value: "#{build_number}"
-      )
-      set_info_plist_value(
-        path: extension_plist,
-        key: 'CFBundleShortVersionString',
-        value: "#{version_number}"
-      )
-    }
+  app_plists.each { |app_plist|
+    set_info_plist_value(
+      path: app_plist,
+      key: 'CFBundleVersion',
+      value: "#{build_number}"
+    )
+    set_info_plist_value(
+      path: app_plist,
+      key: 'CFBundleShortVersionString',
+      value: "#{version_number}"
+    )
+  }
 end
 
 def jira_only_changelog(tag_match_pattern, jira_project)
@@ -532,12 +524,12 @@ def jira_only_changelog(tag_match_pattern, jira_project)
 
   regexp = Regexp.new("(#{jira_project}-[0-9]*)").freeze
 
-    messages = raw_changelog.split("\n").select { |message|
-      message.match(regexp)
-    }.map { |message|
-      "https://jira.rambler.ru/browse/#{message.match(regexp)[1]}"
-    }
-    messages.count > 0 ? messages.join("\n") : "No closed JIRA-issues"
+  messages = raw_changelog.split("\n").select { |message|
+    message.match(regexp)
+  }.map { |message|
+    "https://jira.rambler.ru/browse/#{message.match(regexp)[1]}"
+  }
+  messages.count > 0 ? messages.join("\n") : "No closed JIRA-issues"
 end
 
 def jira_issues(tag_match_pattern, jira_project)
@@ -557,4 +549,31 @@ end
 
 def get_info_plist_path
   File.join(ENV['XCODEPROJ_NAME'], '..', ENV['INFO_PLIST_PATH'])
+end
+
+def setting_app_options(options)
+  app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+  
+  options[:app_identifiers] = [app_identifier] unless options[:app_identifiers]
+  options[:target_patterns] = ["^#{ENV['SCHEME']}$"] if !options[:target_patterns] && ENV['SCHEME']
+  options[:app_plists] = [ENV['INFO_PLIST_PATH']] if !options[:app_plists] && ENV['INFO_PLIST_PATH']
+end
+
+def provisioning_name(app_identifier = nil)
+  app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier) unless app_identifier
+  team_id = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
+  
+  "#{app_identifier}_#{team_id}.mobileprovision"
+end
+
+def xcode_args(options)
+  team_name = CredentialsManager::AppfileConfig.try_fetch_value(:team_name)
+  team_id = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
+  xcargs = "DEVELOPMENT_TEAM=#{team_id}"
+  if options[:app_identifiers].count == 1
+    xcargs << " PROVISIONING_PROFILE_SPECIFIER=#{provisioning_name}" 
+  else
+    xcargs << " CODE_SIGN_IDENTITY=#{team_name.shellescape}" 
+  end
+  xcargs
 end
