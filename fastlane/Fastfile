@@ -204,6 +204,7 @@ private_lane :ftp do |options|
   @result = ''
   xcodeproj_name = ENV['XCODEPROJ_NAME']
   team_id = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
+  team_name = CredentialsManager::AppfileConfig.try_fetch_value(:team_name)
 
   @ftp_host = ENV['FTP_HOST']
   @ftp_port = ENV['FTP_PORT']
@@ -232,7 +233,7 @@ private_lane :ftp do |options|
     workspace: ENV['XCWORKSPACE_NAME'],
     scheme: ENV['SCHEME'],
     export_method: 'enterprise',
-    codesigning_identity: @team_name,
+    codesigning_identity: team_name,
     xcargs: xcode_args(options),
     disable_xcpretty: true
   )
@@ -274,6 +275,9 @@ end
 
 desc "Prepares the build and uploads it to Fabric"
 private_lane :fabric do |options|
+  # Variables declaration
+  team_name = CredentialsManager::AppfileConfig.try_fetch_value(:team_name)
+
   # Getting version number
   version_number = options[:version_number]
   build_number = get_info_plist_value(
@@ -295,7 +299,7 @@ private_lane :fabric do |options|
     scheme: ENV['SCHEME'],
     configuration: "Release",
     clean: true,
-    codesigning_identity: @team_name,
+    codesigning_identity: team_name,
     xcargs: xcode_args(options),
     disable_xcpretty: true
   )
@@ -323,6 +327,9 @@ end
 
 desc "Prepares the build and uploads it to Testflight"
 private_lane :apple_testflight do |options|
+  # Variables declaration
+  team_name = CredentialsManager::AppfileConfig.try_fetch_value(:team_name)
+
   # Refreshing provisioning profile
   make_provisioning_profiles_all_right(options, true)
   
@@ -332,7 +339,7 @@ private_lane :apple_testflight do |options|
     scheme: ENV['SCHEME'],
     configuration: "Release",
     clean: true,
-    codesigning_identity: @team_name,
+    codesigning_identity: team_name,
     xcargs: xcode_args(options),
     disable_xcpretty: true
   )
@@ -567,9 +574,6 @@ def provisioning_name(app_identifier = nil)
 end
 
 def xcode_args(options)
-  team_name = CredentialsManager::AppfileConfig.try_fetch_value(:team_name)
   team_id = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
-  xcargs = "DEVELOPMENT_TEAM=#{team_id}"
-  xcargs << " CODE_SIGN_IDENTITY=#{team_name.shellescape}" if options[:app_identifiers].count > 1
-  xcargs
+  "DEVELOPMENT_TEAM=#{team_id}"
 end
