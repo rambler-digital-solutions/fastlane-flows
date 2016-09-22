@@ -11,7 +11,7 @@ desc "Submit a new build from develop branch to FTP"
 lane :in_house do |options|
   # Setting up the default branch
   predefined_branch = options[:branch]
-  options[:branch] = 'develop' if predefined_branch.empty?
+  options[:branch] = 'develop' if predefined_branch&.empty?
 
   # Setting up git tag as 'inhouse/2016/May/5/12-19'
   month_name = Date.today.strftime("%B")
