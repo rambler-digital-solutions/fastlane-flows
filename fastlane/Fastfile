@@ -578,5 +578,11 @@ end
 
 def obtain_team_name
   team_name = CredentialsManager::AppfileConfig.try_fetch_value(:team_name)
-  "iPhone Distribution: #{team_name}"
+  prefix = 'iPhone Distribution: '
+  # Костыль для того, чтобы не мигрировавшие проекты продолжали собираться
+  if team_name.include?(prefix) == false
+    team_name = "iPhone Distribution: #{team_name}"
+  end
+
+  team_name
 end
