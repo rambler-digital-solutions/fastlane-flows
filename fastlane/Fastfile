@@ -232,7 +232,7 @@ private_lane :ftp do |options|
     export_method: 'enterprise',
     codesigning_identity: team_name,
     xcargs: xcode_args(options),
-    disable_xcpretty: options[:disable_xcpretty]
+    disable_xcpretty: options[:disable_xcpretty],
     xcpretty_report_json: compile_commands_json_file_path
   )
 
