@@ -227,7 +227,8 @@ private_lane :ftp do |options|
 
   # Create oclint tmp directory
   FileUtils.rm_rf(oclint_tmp_dir_path)
-  FileUtils.mkdir_p(oclint_tmp_dir_path)
+  FileUtils.mkdir(oclint_tmp_dir_path)
+  FileUtils.touch(compile_commands_json_file_path)
 
   # Building the ipa file of the enterprise build
   gym(
