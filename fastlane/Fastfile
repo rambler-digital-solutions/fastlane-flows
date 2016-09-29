@@ -308,7 +308,7 @@ private_lane :fabric do |options|
     clean: true,
     codesigning_identity: team_name,
     xcargs: xcode_args(options),
-    disable_xcpretty: true
+    disable_xcpretty: options[:disable_xcpretty],
   )
 
   # Setting up testers groups for notifications
@@ -348,7 +348,7 @@ private_lane :apple_testflight do |options|
     clean: true,
     codesigning_identity: team_name,
     xcargs: xcode_args(options),
-    disable_xcpretty: true
+    disable_xcpretty: options[:disable_xcpretty],
   )
 
   # Uploading the final IPA file to Testflight (without distribution)
