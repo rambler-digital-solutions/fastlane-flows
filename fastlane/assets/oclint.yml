@@ -18,7 +18,6 @@ rules:
 - IvarAssignmentOutsideAccessorsOrInit
 - ParameterReassignment
 - AvoidPrivateStaticMembers
-- EmptyDoWhileStatement
 - EmptyElseBlock
 - EmptyFinallyStatement
 - EmptyForStatement
