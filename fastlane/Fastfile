@@ -135,10 +135,7 @@ end
 desc "Prepares a new release and submits it for testers via Fabric and Testflight"
 lane :staging do |options|
   # Reset and clean working copy if needed
-  skip_reset = options[:skip_reset]
-  if !skip_reset
-    git_reset()
-  end
+  git_reset unless options[:skip_reset]
 
   # Setting up the default branch. Checks out release/x.x.x or hotfix/x.x.x if there are suitable branches, or creates a new branch release/x.x.x
   version = options[:version]
@@ -210,10 +207,7 @@ private_lane :ftp do |options|
   @ftp_password = ENV['FTP_PASSWORD']
 
   # Reset and clean working copy if needed
-  skip_reset = options[:skip_reset]
-  if !skip_reset
-    git_reset()
-  end
+  git_reset unless options[:skip_reset]
 
   # Checking out the passed branch
   git_checkout(remote_branch: branch)
@@ -354,10 +348,7 @@ end
 
 def pre_upload_action(options)
   # Reset and clean working copy if needed
-  skip_reset = options[:skip_reset]
-  if !skip_reset
-    git_reset()
-  end
+  git_reset unless options[:skip_reset]
 
   # Checking out the passed branch
   branch = options[:branch]
@@ -579,10 +570,8 @@ end
 def obtain_team_name
   team_name = CredentialsManager::AppfileConfig.try_fetch_value(:team_name)
   prefix = 'iPhone Distribution: '
-  # Костыль для того, чтобы не мигрировавшие проекты продолжали собираться
-  if team_name.include?(prefix) == false
-    team_name = "iPhone Distribution: #{team_name}"
-  end
 
+  # Костыль для того, чтобы не мигрировавшие проекты продолжали собираться
+  team_name = "#{prefix}#{team_name}" unless team_name.include?(prefix)
   team_name
 end

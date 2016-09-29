@@ -12,11 +12,12 @@ TEMPLATE_PLIST_FILENAME = 'template.plist'
 module Fastlane
   module Actions
     module SharedValues
-      RDS_FTP_DEPLOY_CUSTOM_VALUE = :RDS_FTP_DEPLOY_CUSTOM_VALUE
     end
+
     class RdsFtpDeployAction < Action
       def self.run(params)
         UI.message "Starting FTP deploy"
+
         @ipa_path = params[:ipa_path]
         @app_identifier = params[:app_identifier]
         @name = params[:name]
@@ -38,14 +39,14 @@ module Fastlane
         @plist_name = "#{File.basename(@ipa_path, ".ipa")}.plist"
         @plist_url = "#{@app_identifier}/#{@build_folder_name}/#{@plist_name}"
 
-
         # Загружаем билд
         upload_build
+        
         # Добавляем запись о билде
         upload_build_info
+
         # Добавляем запись о проекте
         upload_project_info
-
       end
 
       # Формат названия папки {дата}
@@ -123,7 +124,6 @@ module Fastlane
         @ftp.rmdir(@build_folder_name)
       end
 
-
       def self.upload_build_info
         # Переходим в папку проекта
         @ftp.chdir(@ftp_dir)
@@ -193,7 +193,6 @@ module Fastlane
         @ftp.login(@ftp_user, @ftp_password)
       end
 
-
       def self.create_new_app_structure
         @ftp.chdir(@ftp_dir)
         @ftp.mkdir(@app_identifier)
@@ -209,10 +208,6 @@ module Fastlane
           builds_file.close
           builds_file.unlink 
         end
-      end
-
-      def upload_ipa
-
       end
 
       #####################################################
@@ -265,12 +260,6 @@ module Fastlane
                                          env_name: "FL_RDS_FTP_DEPLOY_PASSWORD",
                                          description: "FTP password",
                                          is_string: true)
-        ]
-      end
-
-      def self.output
-        [
-            ['RDS_FTP_DEPLOY_CUSTOM_VALUE', 'A description of what this value contains']
         ]
       end
 
