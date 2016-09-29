@@ -2,7 +2,6 @@ rules:
 - BrokenNilCheck
 - CollapsibleIfStatements
 - ConstantConditionalOperator
-- ConstantIfExpression
 - DeadCode
 - DoubleNegative
 - ForLoopShouldBeWhileLoop
@@ -23,7 +22,6 @@ rules:
 - EmptyForStatement
 - EmptyIfStatement
 - EmptySwitchStatement
-- EmptyWhileStatement
 - ReplaceWithBoxedExpression
 - ReplaceWithContainerLiteral
 - ReplaceWithNumberLiteral
