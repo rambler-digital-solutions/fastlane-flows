@@ -24,7 +24,6 @@ rules:
 - EmptyForStatement
 - EmptyIfStatement
 - EmptySwitchStatement
-- EmptyTryStatement
 - EmptyWhileStatement
 - ReplaceWithBoxedExpression
 - ReplaceWithContainerLiteral
@@ -44,7 +43,6 @@ rules:
 - TooManyMethods
 - TooManyParameters
 - UnusedLocalVariable
-- UnusedMethodParameter
 
 rule-configurations:
 - key: LONG_LINE
