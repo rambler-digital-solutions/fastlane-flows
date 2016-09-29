@@ -47,7 +47,7 @@ rule-configurations:
 - key: CYCLOMATIC_COMPLEXITY
   value: 10
 - key: LONG_CLASS
-  value: 1000
+  value: 600
 - key: LONG_METHOD
   value: 50
 - key: MAXIMUM_IF_LENGTH
@@ -61,9 +61,9 @@ rule-configurations:
 - key: TOO_MANY_FIELDS
   value: 20
 - key: TOO_MANY_METHODS
-  value: 20
+  value: 40
 - key: TOO_MANY_PARAMETERS
-  value: 20
+  value: 10
 
 max-priority-1: 99999
 max-priority-2: 99999
