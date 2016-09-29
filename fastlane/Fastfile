@@ -1,6 +1,8 @@
 ############################ IMPORTS ############################
 require 'date'
 require 'credentials_manager'
+require 'yaml'
+require 'fileutils'
 
 ######################### PRECONDITIONS #########################
 default_platform :ios
@@ -82,6 +84,9 @@ lane :nightly do |options|
 
   # Setting up the folder for FTP upload
   options[:ftp_path] = 'nightly'
+
+  # Setting up the oclint
+  options[:oclint] = true
 
   # Setting up app options
   setting_app_options(options)
@@ -253,6 +258,9 @@ private_lane :ftp do |options|
                   ftp_password: @ftp_password
   )
   
+  # Setup Oclint
+  run_oclint(options) if options[:oclint]
+
   # Adding git tags
   tags = options[:tags]
   multiple_tags(tags: tags)
@@ -574,4 +582,77 @@ def obtain_team_name
   # Костыль для того, чтобы не мигрировавшие проекты продолжали собираться
   team_name = "#{prefix}#{team_name}" unless team_name.include?(prefix)
   team_name
+end
+
+FTP_ROOT_DIR = 'www'
+REPOSITORY_URL = 'https://github.com/rambler-ios/fastlane-flows.git'
+OCLINT_CONFIG_PATH = 'fastlane/assets/oclint.yml'
+
+def run_oclint(options)
+  app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+
+  oclint_tmp_dir_name = 'oclint-tmp'
+  oclint_tmp_dir_path = "#{oclint_tmp_dir_name}"
+  compile_commands_json_file_name = 'compile_commands.json'
+  compile_commands_json_file_path = "#{oclint_tmp_dir_path}/#{compile_commands_json_file_name}"
+
+  FileUtils.rm_rf(oclint_tmp_dir_path)
+  FileUtils.mkdir_p(oclint_tmp_dir_path)
+  
+  sh "xcodebuild -workspace #{ENV['XCWORKSPACE_NAME']} -scheme #{ENV['SCHEME']} -destination 'generic/platform=iOS' clean build | xcpretty -r json-compilation-database -o #{compile_commands_json_file_path}"
+
+  clone_folder = REPOSITORY_URL.split('/').last
+  assets_dir_path = Pathname(OCLINT_CONFIG_PATH).dirname.to_s
+  has_oclint_config = File.exist?(OCLINT_CONFIG_PATH)
+
+  FileUtils.rm_rf(clone_folder)
+  sh "git clone #{REPOSITORY_URL} #{clone_folder}"
+  FileUtils.mkdir_p(assets_dir_path)
+  FileUtils.cp("#{clone_folder}/#{OCLINT_CONFIG_PATH}", assets_dir_path) unless has_oclint_config
+  FileUtils.rm_rf(clone_folder)
+
+  oclint_config = YAML.load_file(OCLINT_CONFIG_PATH)
+  oclint_report_name = "oclint_report.json"
+  report_path = "#{oclint_tmp_dir_name}/#{oclint_report_name}"
+
+  rule_configurations = []
+  oclint_config['rule-configurations'].map { |rc| rule_configurations.push("#{rc['key']}=#{rc['value']}") }
+
+  oclint(
+    compile_commands: "#{oclint_tmp_dir_name}/#{compile_commands_json_file_name}",
+    report_path: report_path,
+    exclude_regex: Regexp.new(Regexp.escape(oclint_config['exclude_regex'])),
+    report_type: oclint_config['report_type'],
+    max_priority_1: oclint_config['max-priority-1'],
+    max_priority_2: oclint_config['max-priority-2'],
+    max_priority_3: oclint_config['max-priority-3'],
+    thresholds: rule_configurations,
+    enable_rules: oclint_config['rules'],
+    list_enabled_rules: oclint_config['list_enabled_rules'],
+    allow_duplicated_violations: oclint_config['allow_duplicated_violations'],
+  )
+
+  file_paths = []
+
+  file_paths.push({
+    :source_path => report_path,
+    :destination_path => "#{options[:ftp_path]}/#{app_identifier}/#{Time.now.strftime("%Y-%m-%d")}/#{oclint_report_name}"
+  })
+
+  file_paths.push({
+    :source_path => report_path,
+    :destination_path => "#{options[:ftp_path]}/oclint_reports/#{app_identifier}.json"
+  })
+
+  rds_ftp_client(
+    file_paths: file_paths,
+    ftp_root_dir: FTP_ROOT_DIR,
+    ftp_host: @ftp_host,
+    ftp_port: @ftp_port,
+    ftp_user: @ftp_user,
+    ftp_password: @ftp_password
+  )
+
+  FileUtils.rm_rf(oclint_tmp_dir_path)
+  FileUtils.rm_rf(OCLINT_CONFIG_PATH) unless has_oclint_config
 end
