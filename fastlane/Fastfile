@@ -225,6 +225,10 @@ private_lane :ftp do |options|
   shield_data = "#{shield_text}-blue"
   badge(shield: shield_data, dark: true)
 
+  # Create oclint tmp directory
+  FileUtils.rm_rf(oclint_tmp_dir_path)
+  FileUtils.mkdir_p(oclint_tmp_dir_path)
+
   # Building the ipa file of the enterprise build
   gym(
     workspace: ENV['XCWORKSPACE_NAME'],
@@ -269,6 +273,7 @@ private_lane :ftp do |options|
   # Some cleaning
   clean_build_artifacts
   clear_derived_data
+  clear_oclint_tmp
 
   # Updating the build status for information messages
   @result = 'uploaded'
@@ -644,7 +649,6 @@ def run_oclint(options)
     ftp_password: @ftp_password
   )
 
-  FileUtils.rm_rf(oclint_tmp_dir_path)
   FileUtils.rm_rf(OCLINT_CONFIG_PATH) unless has_oclint_config
 end
 
@@ -655,3 +659,8 @@ end
 def compile_commands_json_file_path
   "#{oclint_tmp_dir_path}/compile_commands.json"
 end
+
+def clear_oclint_tmp
+  FileUtils.rm_rf(oclint_tmp_dir_path)
+end
+
