@@ -233,6 +233,7 @@ private_lane :ftp do |options|
     codesigning_identity: team_name,
     xcargs: xcode_args(options),
     disable_xcpretty: options[:disable_xcpretty]
+    xcpretty_report_json: compile_commands_json_file_path
   )
 
   # Uploading to FTP
@@ -591,16 +592,6 @@ OCLINT_CONFIG_PATH = 'fastlane/assets/oclint.yml'
 def run_oclint(options)
   app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
 
-  oclint_tmp_dir_name = 'oclint-tmp'
-  oclint_tmp_dir_path = "#{oclint_tmp_dir_name}"
-  compile_commands_json_file_name = 'compile_commands.json'
-  compile_commands_json_file_path = "#{oclint_tmp_dir_path}/#{compile_commands_json_file_name}"
-
-  FileUtils.rm_rf(oclint_tmp_dir_path)
-  FileUtils.mkdir_p(oclint_tmp_dir_path)
-  
-  sh "xcodebuild -workspace #{ENV['XCWORKSPACE_NAME']} -scheme #{ENV['SCHEME']} -destination 'generic/platform=iOS' clean build | xcpretty -r json-compilation-database -o #{compile_commands_json_file_path}"
-
   clone_folder = REPOSITORY_URL.split('/').last
   assets_dir_path = Pathname(OCLINT_CONFIG_PATH).dirname.to_s
   has_oclint_config = File.exist?(OCLINT_CONFIG_PATH)
@@ -613,13 +604,13 @@ def run_oclint(options)
 
   oclint_config = YAML.load_file(OCLINT_CONFIG_PATH)
   oclint_report_name = "oclint_report.json"
-  report_path = "#{oclint_tmp_dir_name}/#{oclint_report_name}"
+  report_path = "#{oclint_tmp_dir_path}/#{oclint_report_name}"
 
   rule_configurations = []
   oclint_config['rule-configurations'].map { |rc| rule_configurations.push("#{rc['key']}=#{rc['value']}") }
 
   oclint(
-    compile_commands: "#{oclint_tmp_dir_name}/#{compile_commands_json_file_name}",
+    compile_commands: compile_commands_json_file_path,
     report_path: report_path,
     exclude_regex: Regexp.new(Regexp.escape(oclint_config['exclude_regex'])),
     report_type: oclint_config['report_type'],
@@ -655,4 +646,12 @@ def run_oclint(options)
 
   FileUtils.rm_rf(oclint_tmp_dir_path)
   FileUtils.rm_rf(OCLINT_CONFIG_PATH) unless has_oclint_config
+end
+
+def oclint_tmp_dir_path
+  "oclint-tmp"
+end
+
+def compile_commands_json_file_path
+  "#{oclint_tmp_dir_path}/compile_commands.json"
 end
