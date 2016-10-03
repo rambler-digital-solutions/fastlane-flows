@@ -72,4 +72,3 @@ max-priority-3: 99999
 exclude_regex: /Pods/
 report_type: rds_json
 list_enabled_rules: true
-allow_duplicated_violations: false

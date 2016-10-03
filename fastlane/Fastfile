@@ -609,31 +609,26 @@ def run_oclint(options)
   FileUtils.rm_rf(clone_folder)
 
   oclint_config = YAML.load_file(OCLINT_CONFIG_PATH)
-  oclint_report_name = "oclint_report.json"
-  report_path = "#{oclint_tmp_dir_path}/#{oclint_report_name}"
-
-  rule_configurations = []
-  oclint_config['rule-configurations'].map { |rc| rule_configurations.push("#{rc['key']}=#{rc['value']}") }
-
-  oclint(
-    compile_commands: compile_commands_json_file_path,
-    report_path: report_path,
-    exclude_regex: Regexp.new(Regexp.escape(oclint_config['exclude_regex'])),
-    report_type: oclint_config['report_type'],
-    max_priority_1: oclint_config['max-priority-1'],
-    max_priority_2: oclint_config['max-priority-2'],
-    max_priority_3: oclint_config['max-priority-3'],
-    thresholds: rule_configurations,
-    enable_rules: oclint_config['rules'],
-    list_enabled_rules: oclint_config['list_enabled_rules'],
-    allow_duplicated_violations: oclint_config['allow_duplicated_violations'],
-  )
+  destination_path_base = "#{options[:ftp_path]}/#{app_identifier}/#{Time.now.strftime("%Y-%m-%d")}"
 
   file_paths = []
 
+  oclint_report_name = "oclint_report.json"
+  report_path = execute_oclint(oclint_config, oclint_report_name, oclint_config['report_type'])
+  destination_path = "#{destination_path_base}/#{oclint_report_name}"
+  
   file_paths.push({
     :source_path => report_path,
-    :destination_path => "#{options[:ftp_path]}/#{app_identifier}/#{Time.now.strftime("%Y-%m-%d")}/#{oclint_report_name}"
+    :destination_path => destination_path
+  })
+
+  oclint_report_name = "oclint_report.html"
+  report_path = execute_oclint(oclint_config, oclint_report_name)
+  destination_path = "#{destination_path_base}/#{oclint_report_name}"
+
+  file_paths.push({
+    :source_path => report_path,
+    :destination_path => destination_path
   })
 
   file_paths.push({
@@ -653,6 +648,28 @@ def run_oclint(options)
   FileUtils.rm_rf(OCLINT_CONFIG_PATH) unless has_oclint_config
 end
 
+def execute_oclint(oclint_config, oclint_report_name, report_type = html)
+  report_path = "#{oclint_tmp_dir_path}/#{oclint_report_name}"
+  
+  rule_configurations = []
+  oclint_config['rule-configurations'].map { |rc| rule_configurations.push("#{rc['key']}=#{rc['value']}") }
+
+  oclint(
+    compile_commands: compile_commands_json_file_path,
+    report_path: report_path,
+    exclude_regex: Regexp.new(Regexp.escape(oclint_config['exclude_regex'])),
+    report_type: report_type,
+    max_priority_1: oclint_config['max-priority-1'],
+    max_priority_2: oclint_config['max-priority-2'],
+    max_priority_3: oclint_config['max-priority-3'],
+    thresholds: rule_configurations,
+    enable_rules: oclint_config['rules'],
+    list_enabled_rules: oclint_config['list_enabled_rules']
+  )
+
+  report_path
+end
+
 def oclint_tmp_dir_path
   "oclint-tmp"
 end
@@ -664,4 +681,3 @@ end
 def clear_oclint_tmp
   FileUtils.rm_rf(oclint_tmp_dir_path)
 end
-
