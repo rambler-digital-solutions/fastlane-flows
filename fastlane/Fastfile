@@ -596,8 +596,6 @@ REPOSITORY_URL = 'https://github.com/rambler-ios/fastlane-flows.git'
 OCLINT_CONFIG_PATH = 'fastlane/assets/oclint.yml'
 
 def run_oclint(ftp_path)
-  app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
-
   clone_folder = REPOSITORY_URL.split('/').last
   assets_dir_path = Pathname(OCLINT_CONFIG_PATH).dirname.to_s
   has_oclint_config = File.exist?(OCLINT_CONFIG_PATH)
