@@ -616,7 +616,7 @@ def run_oclint(options)
   oclint_report_name = "oclint_report.json"
   report_path = execute_oclint(oclint_config, oclint_report_name, oclint_config['report_type'])
   destination_path = "#{destination_path_base}/#{oclint_report_name}"
-  
+
   file_paths.push({
     :source_path => report_path,
     :destination_path => destination_path
@@ -648,7 +648,7 @@ def run_oclint(options)
   FileUtils.rm_rf(OCLINT_CONFIG_PATH) unless has_oclint_config
 end
 
-def execute_oclint(oclint_config, oclint_report_name, report_type = html)
+def execute_oclint(oclint_config, oclint_report_name, report_type = 'html')
   report_path = "#{oclint_tmp_dir_path}/#{oclint_report_name}"
   
   rule_configurations = []
