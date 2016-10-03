@@ -265,7 +265,7 @@ private_lane :ftp do |options|
   )
   
   # Setup Oclint
-  run_oclint(options) if options[:oclint]
+  run_oclint(options[:ftp_path]) if options[:oclint]
 
   # Adding git tags
   tags = options[:tags]
@@ -595,7 +595,7 @@ FTP_ROOT_DIR = 'www'
 REPOSITORY_URL = 'https://github.com/rambler-ios/fastlane-flows.git'
 OCLINT_CONFIG_PATH = 'fastlane/assets/oclint.yml'
 
-def run_oclint(options)
+def run_oclint(ftp_path)
   app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
 
   clone_folder = REPOSITORY_URL.split('/').last
@@ -609,8 +609,8 @@ def run_oclint(options)
   FileUtils.rm_rf(clone_folder)
 
   oclint_config = YAML.load_file(OCLINT_CONFIG_PATH)
-  file_paths = file_paths(oclint_config)
-  
+  file_paths = file_paths(ftp_path, oclint_config)
+
   rds_ftp_client(
     file_paths: file_paths,
     ftp_root_dir: FTP_ROOT_DIR,
@@ -623,31 +623,9 @@ def run_oclint(options)
   FileUtils.rm_rf(OCLINT_CONFIG_PATH) unless has_oclint_config
 end
 
-def execute_oclint(oclint_config, oclint_report_name, report_type = 'html')
-  report_path = "#{oclint_tmp_dir_path}/#{oclint_report_name}"
-  
-  rule_configurations = []
-  oclint_config['rule-configurations'].map { |rc| rule_configurations.push("#{rc['key']}=#{rc['value']}") }
-
-  oclint(
-    compile_commands: compile_commands_json_file_path,
-    report_path: report_path,
-    exclude_regex: Regexp.new(Regexp.escape(oclint_config['exclude_regex'])),
-    report_type: report_type,
-    max_priority_1: oclint_config['max-priority-1'],
-    max_priority_2: oclint_config['max-priority-2'],
-    max_priority_3: oclint_config['max-priority-3'],
-    thresholds: rule_configurations,
-    enable_rules: oclint_config['rules'],
-    list_enabled_rules: oclint_config['list_enabled_rules']
-  )
-
-  report_path
-end
-
-def file_paths(oclint_config)
-  destination_path_base = "#{options[:ftp_path]}/#{app_identifier}/#{Time.now.strftime("%Y-%m-%d")}"
-  general_destination_path_base = "#{options[:ftp_path]}/oclint_reports/#{app_identifier}."
+def file_paths(ftp_path, oclint_config)
+  destination_path_base = "#{ftp_path}/#{app_identifier}/#{Time.now.strftime("%Y-%m-%d")}"
+  general_destination_path_base = "#{ftp_path}/oclint_reports/#{app_identifier}."
   report_file_name = 'oclint_report'
 
   file_paths = []
@@ -683,6 +661,28 @@ def file_paths(oclint_config)
     :source_path => report_path,
     :destination_path => general_destination_path
   })
+end
+
+def execute_oclint(oclint_config, oclint_report_name, report_type = 'html')
+  report_path = "#{oclint_tmp_dir_path}/#{oclint_report_name}"
+  
+  rule_configurations = []
+  oclint_config['rule-configurations'].map { |rc| rule_configurations.push("#{rc['key']}=#{rc['value']}") }
+
+  oclint(
+    compile_commands: compile_commands_json_file_path,
+    report_path: report_path,
+    exclude_regex: Regexp.new(Regexp.escape(oclint_config['exclude_regex'])),
+    report_type: report_type,
+    max_priority_1: oclint_config['max-priority-1'],
+    max_priority_2: oclint_config['max-priority-2'],
+    max_priority_3: oclint_config['max-priority-3'],
+    thresholds: rule_configurations,
+    enable_rules: oclint_config['rules'],
+    list_enabled_rules: oclint_config['list_enabled_rules']
+  )
+
+  report_path
 end
 
 def oclint_tmp_dir_path
