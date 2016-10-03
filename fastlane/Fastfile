@@ -609,33 +609,8 @@ def run_oclint(options)
   FileUtils.rm_rf(clone_folder)
 
   oclint_config = YAML.load_file(OCLINT_CONFIG_PATH)
-  destination_path_base = "#{options[:ftp_path]}/#{app_identifier}/#{Time.now.strftime("%Y-%m-%d")}"
-
-  file_paths = []
-
-  oclint_report_name = "oclint_report.json"
-  report_path = execute_oclint(oclint_config, oclint_report_name, oclint_config['report_type'])
-  destination_path = "#{destination_path_base}/#{oclint_report_name}"
-
-  file_paths.push({
-    :source_path => report_path,
-    :destination_path => destination_path
-  })
-
-  oclint_report_name = "oclint_report.html"
-  report_path = execute_oclint(oclint_config, oclint_report_name)
-  destination_path = "#{destination_path_base}/#{oclint_report_name}"
-
-  file_paths.push({
-    :source_path => report_path,
-    :destination_path => destination_path
-  })
-
-  file_paths.push({
-    :source_path => report_path,
-    :destination_path => "#{options[:ftp_path]}/oclint_reports/#{app_identifier}.json"
-  })
-
+  file_paths = file_paths(oclint_config)
+  
   rds_ftp_client(
     file_paths: file_paths,
     ftp_root_dir: FTP_ROOT_DIR,
@@ -668,6 +643,46 @@ def execute_oclint(oclint_config, oclint_report_name, report_type = 'html')
   )
 
   report_path
+end
+
+def file_paths(oclint_config)
+  destination_path_base = "#{options[:ftp_path]}/#{app_identifier}/#{Time.now.strftime("%Y-%m-%d")}"
+  general_destination_path_base = "#{options[:ftp_path]}/oclint_reports/#{app_identifier}."
+  report_file_name = 'oclint_report'
+
+  file_paths = []
+
+  base_extension = 'json'
+  oclint_report_name = "#{report_file_name}.#{base_extension}"
+  report_path = execute_oclint(oclint_config, oclint_report_name, oclint_config['report_type'])
+  destination_path = "#{destination_path_base}/#{oclint_report_name}"
+  general_destination_path = "#{general_destination_path_base}.#{base_extension}"
+
+  file_paths.push({
+    :source_path => report_path,
+    :destination_path => destination_path
+  })
+
+  file_paths.push({
+    :source_path => report_path,
+    :destination_path => general_destination_path
+  })
+
+  base_extension = 'html'
+  oclint_report_name = "#{report_file_name}.#{base_extension}"
+  report_path = execute_oclint(oclint_config, oclint_report_name)
+  destination_path = "#{destination_path_base}/#{oclint_report_name}"
+  general_destination_path = "#{general_destination_path_base}.#{base_extension}"
+
+  file_paths.push({
+    :source_path => report_path,
+    :destination_path => destination_path
+  })
+
+  file_paths.push({
+    :source_path => report_path,
+    :destination_path => general_destination_path
+  })
 end
 
 def oclint_tmp_dir_path
