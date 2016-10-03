@@ -622,6 +622,8 @@ def run_oclint(ftp_path)
 end
 
 def file_paths(ftp_path, oclint_config)
+  app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+  
   destination_path_base = "#{ftp_path}/#{app_identifier}/#{Time.now.strftime("%Y-%m-%d")}"
   general_destination_path_base = "#{ftp_path}/oclint_reports/#{app_identifier}."
   report_file_name = 'oclint_report'
