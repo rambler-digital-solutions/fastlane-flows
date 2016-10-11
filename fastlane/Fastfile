@@ -439,7 +439,7 @@ def post_upload_action(options)
       :jira_host            => ENV['JIRA_HOST'],
       :jira_transition_name => ENV['JIRA_TRANSITION_NAME'],
     }
-    jira_work_flow(jira_options)
+    #jira_work_flow(jira_options)
   end
 end
 
