@@ -16,18 +16,20 @@ module Fastlane
         pods_project.root_object.targets.each { |target|
           targets_ids.push(target.uuid)
         }
+        puts("target_ids = #{targets_ids}")
 
         pods_project_attrs = pods_project.root_object.attributes
         target_attributes = pods_project_attrs['TargetAttributes']
         if !target_attributes 
           pods_project_attrs['TargetAttributes'] = {}
         end
-
+        puts("pods_project_attrs = #{pods_project_attrs}")
         targets_ids.each { |target_id|
           pods_project_attrs['TargetAttributes'][target_id] = {
             'ProvisioningStyle' => 'Manual'
           }
         }
+        puts("pods_project_attrs = #{pods_project_attrs}")
         pods_project.root_object.attributes = pods_project_attrs
       end
 
