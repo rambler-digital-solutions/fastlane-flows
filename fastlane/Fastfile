@@ -484,6 +484,11 @@ def make_provisioning_profiles_all_right(options, adhoc)
   target_patterns = options[:target_patterns]
   app_plists = options[:app_plists]
   app_ids.zip(target_patterns, app_plists) { |app_id, target_pattern, app_plist|
+    update_project_codesigning(
+      path: ENV['XCODEPROJ_NAME'],
+      use_automatic_signing: false
+    )
+
     sigh(
       app_identifier: app_id, 
       output_path: "/tmp",
