@@ -13,8 +13,13 @@ module Fastlane
         pods_project = Xcodeproj::Project.open(Dir["Pods/Pods.xcodeproj"].first)
 
         targets_ids = []
+        swift_versions = []
         pods_project.root_object.targets.each { |target|
-          puts(target)
+          target.build_configurations.each { |config|
+            puts(target)
+            puts(config)
+            puts(config.build_settings['SWIFT_VERSION'])
+          }
           targets_ids.push(target.uuid)
         }
         puts("target_ids = #{targets_ids}")
@@ -36,7 +41,7 @@ module Fastlane
 
         pods_project.root_object.targets.each { |target|
           target.build_configurations.each { |config|
-            config.build_settings['SWIFT_VERSION'] = '2.3'
+            config.build_settings['SWIFT_VERSION'] = '3.0'
           }
         }
         pods_project.save
