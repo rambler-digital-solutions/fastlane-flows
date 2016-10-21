@@ -17,7 +17,7 @@ module Fastlane
           targets_ids.push(target.uuid)
         }
 
-        pods_project_attrs = pods_project.attributes
+        pods_project_attrs = pods_project.root_object.attributes
         target_attributes = pods_project_attrs['TargetAttributes']
         if !target_attributes 
           pods_project_attrs['TargetAttributes'] = {}
@@ -28,6 +28,7 @@ module Fastlane
             'ProvisioningStyle' => 'Manual'
           }
         }
+        pods_project.root_object.attributes = pods_project_attrs
       end
 
       def self.description
