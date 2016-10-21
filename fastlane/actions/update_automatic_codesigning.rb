@@ -14,6 +14,7 @@ module Fastlane
 
         targets_ids = []
         pods_project.root_object.targets.each { |target|
+          puts(target)
           targets_ids.push(target.uuid)
         }
         puts("target_ids = #{targets_ids}")
