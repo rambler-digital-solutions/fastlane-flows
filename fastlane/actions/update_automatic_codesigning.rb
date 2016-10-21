@@ -9,6 +9,25 @@ module Fastlane
         p = File.read(path)
         File.write(path, p.gsub(/ProvisioningStyle = .*;/, "ProvisioningStyle = #{params[:use_automatic_signing] ? 'Automatic' : 'Manual'};"))
         UI.success("Successfully updated project settings to use ProvisioningStyle '#{params[:use_automatic_signing] ? 'Automatic' : 'Manual'}'")
+      
+        pods_project = Xcodeproj::Project.open(Dir["Pods/Pods.xcodeproj"])
+
+        targets_ids = []
+        pods_project.targets.each { |target|
+          targets_ids.push(target.uuid)
+        }
+
+        pods_project_attrs = pods_project.attributes
+        target_attributes = pods_project_attrs['TargetAttributes']
+        if !target_attributes 
+          pods_project_attrs['TargetAttributes'] = {}
+        end
+
+        targets_ids.each { |target_id|
+          pods_project_attrs['TargetAttributes'][target_id] = {
+            'ProvisioningStyle' => 'Manual'
+          }
+        }
       end
 
       def self.description
