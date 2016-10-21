@@ -13,7 +13,7 @@ module Fastlane
         pods_project = Xcodeproj::Project.open(Dir["Pods/Pods.xcodeproj"].first)
 
         targets_ids = []
-        pods_project.targets.each { |target|
+        pods_project.root_object.targets.each { |target|
           targets_ids.push(target.uuid)
         }
 
