@@ -31,6 +31,7 @@ module Fastlane
         }
         puts("pods_project_attrs = #{pods_project_attrs}")
         pods_project.root_object.attributes = pods_project_attrs
+        puts("pods_project.root_object.attributes = #{pods_project.root_object.attributes}")
       end
 
       def self.description
