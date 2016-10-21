@@ -3,6 +3,7 @@ require 'date'
 require 'credentials_manager'
 require 'yaml'
 require 'fileutils'
+require 'fastlane-plugin-update_project_codesigning'
 
 ######################### PRECONDITIONS #########################
 default_platform :ios
