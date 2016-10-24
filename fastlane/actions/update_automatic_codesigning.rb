@@ -6,12 +6,11 @@ module Fastlane
         path = File.join(File.expand_path(path), "project.pbxproj")
         UI.user_error!("Could not find path to project config '#{path}'. Pass the path to your project (not workspace)!") unless File.exist?(path)
         UI.message("Updating the Automatic Codesigning flag to #{params[:use_automatic_signing] ? 'enabled' : 'disabled'} for the given project '#{path}'")
-      
         # Обновляем настройки подписи всех таргетов проекта
         setup_signing_in_xcodeproj(path, params)
 
         # Обновляем настройки таргетов в Pods.xcodeproj
-        setup_signing_in_xcodeproj("Pods/Pods.xcodeproj"].first, params)
+        setup_signing_in_xcodeproj(Dir["Pods/Pods.xcodeproj"].first, params)
 
         UI.success("Successfully updated project settings to use ProvisioningStyle '#{params[:use_automatic_signing] ? 'Automatic' : 'Manual'}'")
       end
@@ -50,6 +49,7 @@ module Fastlane
           }
         }
         project.save
+
       end
 
       def self.description
