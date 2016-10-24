@@ -6,45 +6,50 @@ module Fastlane
         path = File.join(File.expand_path(path), "project.pbxproj")
         UI.user_error!("Could not find path to project config '#{path}'. Pass the path to your project (not workspace)!") unless File.exist?(path)
         UI.message("Updating the Automatic Codesigning flag to #{params[:use_automatic_signing] ? 'enabled' : 'disabled'} for the given project '#{path}'")
-        p = File.read(path)
-        File.write(path, p.gsub(/ProvisioningStyle = .*;/, "ProvisioningStyle = #{params[:use_automatic_signing] ? 'Automatic' : 'Manual'};"))
-        UI.success("Successfully updated project settings to use ProvisioningStyle '#{params[:use_automatic_signing] ? 'Automatic' : 'Manual'}'")
       
-        pods_project = Xcodeproj::Project.open(Dir["Pods/Pods.xcodeproj"].first)
+        # Обновляем настройки подписи всех таргетов проекта
+        setup_signing_in_xcodeproj(path, params)
+
+        # Обновляем настройки таргетов в Pods.xcodeproj
+        setup_signing_in_xcodeproj("Pods/Pods.xcodeproj"].first, params)
+
+        UI.success("Successfully updated project settings to use ProvisioningStyle '#{params[:use_automatic_signing] ? 'Automatic' : 'Manual'}'")
+      end
+
+      def self.setup_signing_in_xcodeproj(xcodeproj, params)
+        project = Xcodeproj::Project.open(xcodeproj)
 
         targets_ids = []
         swift_versions = {}
-        pods_project.root_object.targets.each { |target|
+        project.root_object.targets.each { |target|
+
+          # Замечательный костыль - почему-то сбрасывалось поле SWIFT_VERSION у всех подов после выполнения всех скриптов, похоже на косяк Xcodeproj гема. Чтобы закостылить, сохраняем эти значения и потом их проставляем.
           swift_versions[target] = {}
           target.build_configurations.each { |config|
             swift_versions[target][config] = config.build_settings['SWIFT_VERSION']
           }
           targets_ids.push(target.uuid)
         }
-        puts("target_ids = #{targets_ids}")
 
-        pods_project_attrs = pods_project.root_object.attributes
-        target_attributes = pods_project_attrs['TargetAttributes']
+        project_attrs = project.root_object.attributes
+        target_attributes = project_attrs['TargetAttributes']
         if !target_attributes 
-          pods_project_attrs['TargetAttributes'] = {}
+          project_attrs['TargetAttributes'] = {}
         end
-        puts("pods_project_attrs = #{pods_project_attrs}")
         targets_ids.each { |target_id|
-          pods_project_attrs['TargetAttributes'][target_id] = {
-            'ProvisioningStyle' => 'Manual'
-          }
+          if project_attrs['TargetAttributes'][target_id] == null
+            project_attrs['TargetAttributes'][target_id] = {}
+          end
+          style = params[:use_automatic_signing] ? 'Automatic' : 'Manual'
+          project_attrs['TargetAttributes'][target_id]['ProvisioningStyle'] = style
         }
-        puts("pods_project_attrs = #{pods_project_attrs}")
-        pods_project.root_object.attributes = pods_project_attrs
-        puts("pods_project.root_object.attributes = #{pods_project.root_object.attributes}")
-
-        pods_project.root_object.targets.each { |target|
-
+        project.root_object.attributes = project_attrs
+        project.root_object.targets.each { |target|
           target.build_configurations.each { |config|
             config.build_settings['SWIFT_VERSION'] = swift_versions[target][config]
           }
         }
-        pods_project.save
+        project.save
       end
 
       def self.description
@@ -52,7 +57,7 @@ module Fastlane
       end
 
       def self.details
-        "Updates the Xcode 8 Automatic Codesigning Flag of all targets in the project"
+        "Updates the Xcode 8 Automatic Codesigning Flag of all targets in the project and CocoaPods"
       end
 
       def self.available_options
