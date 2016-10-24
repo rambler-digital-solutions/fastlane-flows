@@ -202,20 +202,34 @@ private_lane :ftp do |options|
   @name = ENV['APP_NAME']
   @name ||= @app_identifier
   @result = ''
-  xcodeproj_name = ENV['XCODEPROJ_NAME']
-  team_id = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
-  team_name = obtain_team_name
-
-  @ftp_host = ENV['FTP_HOST']
-  @ftp_port = ENV['FTP_PORT']
-  @ftp_user = ENV['FTP_USER']
-  @ftp_password = ENV['FTP_PASSWORD']
 
   # Reset and clean working copy if needed
   git_reset unless options[:skip_reset]
 
   # Checking out the passed branch
   git_checkout(remote_branch: branch)
+
+  # Build, Sigh and Upload
+  ftp_build_and_upload(options)
+
+  # Setup Oclint
+  run_oclint(options[:ftp_path]) if options[:oclint]
+
+  # Adding git tags
+  tags = options[:tags]
+  multiple_tags(tags: tags)
+
+  # Some cleaning
+  clean_build_artifacts
+  clear_derived_data
+  clear_oclint_tmp
+
+  # Updating the build status for information messages
+  @result = 'uploaded'
+end
+
+desc "Prepares the build and uploads it to Fabric"
+private_lane :ftp_build_and_upload do |options|
 
   # Refreshing provisioning profile
   make_provisioning_profiles_all_right(options, false)
@@ -235,13 +249,19 @@ private_lane :ftp do |options|
     workspace: ENV['XCWORKSPACE_NAME'],
     scheme: ENV['SCHEME'],
     export_method: 'enterprise',
-    codesigning_identity: team_name,
+    codesigning_identity: obtain_team_name,
     xcargs: xcode_args(options),
     disable_xcpretty: options[:disable_xcpretty],
     xcpretty_report_json: compile_commands_json_file_path
   )
 
   # Uploading to FTP
+
+  @ftp_host = ENV['FTP_HOST']
+  @ftp_port = ENV['FTP_PORT']
+  @ftp_user = ENV['FTP_USER']
+  @ftp_password = ENV['FTP_PASSWORD']
+
   ipa_path = lane_context[SharedValues::IPA_OUTPUT_PATH]
   baseurl = ENV['DEPLOY_BASEURL']
   ftp_path = options[:ftp_path]
@@ -263,21 +283,7 @@ private_lane :ftp do |options|
                   ftp_user: @ftp_user,
                   ftp_password: @ftp_password
   )
-  
-  # Setup Oclint
-  run_oclint(options[:ftp_path]) if options[:oclint]
 
-  # Adding git tags
-  tags = options[:tags]
-  multiple_tags(tags: tags)
-
-  # Some cleaning
-  clean_build_artifacts
-  clear_derived_data
-  clear_oclint_tmp
-
-  # Updating the build status for information messages
-  @result = 'uploaded'
 end
 
 desc "Prepares the build and uploads it to Fabric"
