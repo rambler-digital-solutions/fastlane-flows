@@ -33,7 +33,7 @@ module Fastlane
           project_attrs['TargetAttributes'] = {}
         end
         targets_ids.each { |target_id|
-          if project_attrs['TargetAttributes'][target_id] == null
+          if !project_attrs['TargetAttributes'][target_id]
             project_attrs['TargetAttributes'][target_id] = {}
           end
           style = params[:use_automatic_signing] ? 'Automatic' : 'Manual'
