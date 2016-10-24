@@ -2,7 +2,7 @@ module Fastlane
   module Actions
     class UpdateAutomaticCodesigningAction < Action
       def self.run(params)
-        UI.message("Updating the Automatic Codesigning flag to #{params[:use_automatic_signing] ? 'enabled' : 'disabled'} for the given project '#{path}'")
+        UI.message("Updating the Automatic Codesigning flag to #{params[:use_automatic_signing] ? 'enabled' : 'disabled'} for the given project '#{params[:path]}'")
         # Обновляем настройки подписи всех таргетов проекта
         setup_signing_in_xcodeproj(params[:path], params)
 
