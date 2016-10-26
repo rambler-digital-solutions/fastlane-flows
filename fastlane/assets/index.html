@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>OCLint Report</title>
+    <style type='text/css'>
+        .total_files,
+        .files_with_violations,
+        .priority1,
+        .priority2,
+        .priority3,
+        .cmplr-error,
+        .cmplr-warning,
+        .checker-bug {
+            font-weight: bold;
+            text-align: center;
+        }
+        .priority1,
+        .priority2,
+        .priority3 {
+            color: #BF0A30;
+        }
+        .priority1 {
+            background-color: #FFC200;
+        }
+        .priority2 {
+            background-color: #FFD3A6;
+        }
+        .priority3 {
+            background-color: #FFEEB5;
+        }
+        .cmplr-error,
+        .cmplr-warning {
+            background-color: #BF0A30;
+        }
+        .cmplr-error {
+            color: #FFC200;
+        }
+        .cmplr-warning {
+            color: #FFD3A6;
+        }
+        .checker-bug {
+            background-color: #002868;
+            color: white;
+        }
+        table {
+            border: 2px solid gray;
+            border-collapse: collapse;
+            -moz-box-shadow: 3px 3px 4px #AAA;
+            -webkit-box-shadow: 3px 3px 4px #AAA;
+            box-shadow: 3px 3px 4px #AAA;
+        }
+        td,
+        th {
+            border: 1px solid #D3D3D3;
+            padding: 4px 20px 4px 20px;
+        }
+        th {
+            text-shadow: 2px 2px 2px white;
+            border-bottom: 1px solid gray;
+            background-color: #E9F4FF;
+        }
+    </style>
+    <script type="text/javascript">
+        function onload() {
+        	json_file = location.pathname.split('/').pop().replace(/\.[^/.]+$/, "") + '.json'
+        	
+            xhr = new XMLHttpRequest();
+            xhr.open('GET', json_file, true);
+            xhr.send();
+
+            xhr.onreadystatechange = function() { // (3)
+                if (xhr.readyState != 4) return;
+
+                if (xhr.status != 200) {
+                    alert(xhr.status + ': ' + xhr.statusText);
+                } else {
+                    handleJson(xhr.responseText)
+                }
+            }
+        }
+
+        function handleJson(text) {
+            var json = JSON.parse(text);
+            var summary = json['summary'];
+            var numberOfViolationsWithPriority = summary['numberOfViolationsWithPriority'];
+
+            var totalFilesTD = document.getElementsByClassName('total_files')[0];
+            totalFilesTD.textContent = summary['numberOfFiles'];
+
+            var filesWithViolationsTD = document.getElementsByClassName('files_with_violations')[0];
+            filesWithViolationsTD.textContent = summary['numberOfFilesWithViolations'];
+
+            var priority1TD = document.getElementsByClassName('priority1')[0];
+            priority1TD.textContent = numberOfViolationsWithPriority[0]['number'];
+
+            var priority2TD = document.getElementsByClassName('priority2')[0];
+            priority2TD.textContent = numberOfViolationsWithPriority[1]['number'];
+
+            var priority3TD = document.getElementsByClassName('priority3')[0];
+            priority3TD.textContent = numberOfViolationsWithPriority[2]['number'];
+
+            var complieWarningTD = document.getElementsByClassName('cmplr-warning')[0];
+            complieWarningTD.textContent = summary['numberOfWarnings'];
+
+            createViolationsTable(json['violation']);
+
+            var dateComponent = new Date(json['timestamp'] * 1000);
+
+            var date = document.getElementById('date');
+            date.textContent = dateComponent.getDate() + '.' + ('0' + (dateComponent.getMonth() + 1)).slice(-2) + '.' + dateComponent.getFullYear();
+
+            var a = document.getElementById('oclint_url');
+            a.href = json['url'];
+            a.textContent = 'OCLint v' + json['version'];
+        }
+
+        function createViolationsTable(violations) {
+        	var tableBody = document.getElementById('violations');
+            
+            violations.sort(function(a, b) {
+                if (a['priority'] < b['priority']) return -1;
+                if (a['priority'] > b['priority']) return 1;
+                return 0;
+            });
+
+            for (var i = 0; i < violations.length; i++) {
+                var violation = violations[i];
+
+                var tr = document.createElement('tr');
+
+                var fileTD = document.createElement('td');
+                fileTD.textContent = violation['path'];
+                tr.appendChild(fileTD);
+
+                var locationTD = document.createElement('td');
+                locationTD.textContent = violation['startLine'] + ':' + violation['startColumn'];
+                tr.appendChild(locationTD);
+
+                var ruleNameTD = document.createElement('td');
+                ruleNameTD.textContent = violation['rule'];
+                tr.appendChild(ruleNameTD);
+
+                var ruleCategoryTD = document.createElement('td');
+                ruleCategoryTD.textContent = violation['category'];
+                tr.appendChild(ruleCategoryTD);
+
+                var priorityTD = document.createElement('td');
+                priorityTD.textContent = violation['priority'];
+                priorityTD.className = 'priority' + violation['priority'];
+                tr.appendChild(priorityTD);
+
+                var messageTD = document.createElement('td');
+                messageTD.textContent = violation['message'];
+                tr.appendChild(messageTD);
+
+                tableBody.appendChild(tr);
+            }
+        }
+
+        window.onload = onload();
+    </script>
+</head>
+
+<body>
+    <h1>OCLint Report</h1>
+    <hr />
+    <h2>Summary</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Total Files</th>
+                <th>Files with Violations</th>
+                <th>Priority 1</th>
+                <th>Priority 2</th>
+                <th>Priority 3</th>
+                <th>Compiler Warnings</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class='total_files'></td>
+                <td class='files_with_violations'></td>
+                <td class='priority1'></td>
+                <td class='priority2'></td>
+                <td class='priority3'></td>
+                <td class='cmplr-warning'></td>
+            </tr>
+        </tbody>
+    </table>
+    <hr />
+    <table>
+        <thead>
+            <tr>
+                <th>File</th>
+                <th>Location</th>
+                <th>Rule Name</th>
+                <th>Rule Category</th>
+                <th>Priority</th>
+                <th>Message</th>
+            </tr>
+        </thead>
+        <tbody id='violations'></tbody>
+    </table>
+    <hr />
+    <p><span id='date'></span> | Generated with <a id='oclint_url'></a>.
+    </p>
+</body>
+
+</html>

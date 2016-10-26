@@ -605,20 +605,23 @@ end
 FTP_ROOT_DIR = 'www'
 REPOSITORY_URL = 'https://github.com/rambler-ios/fastlane-flows.git'
 OCLINT_CONFIG_PATH = 'fastlane/assets/oclint.yml'
+INDEX_HTML_PATH = 'fastlane/assets/index.html'
 
 def run_oclint(ftp_path)
   clone_folder = REPOSITORY_URL.split('/').last
   assets_dir_path = Pathname(OCLINT_CONFIG_PATH).dirname.to_s
   has_oclint_config = File.exist?(OCLINT_CONFIG_PATH)
+  has_index_html = File.exist?(INDEX_HTML_PATH)
 
   FileUtils.rm_rf(clone_folder)
   sh "git clone #{REPOSITORY_URL} #{clone_folder}"
   FileUtils.mkdir_p(assets_dir_path)
   FileUtils.cp("#{clone_folder}/#{OCLINT_CONFIG_PATH}", assets_dir_path) unless has_oclint_config
+  FileUtils.cp("#{clone_folder}/#{INDEX_HTML_PATH}", assets_dir_path) unless has_index_html
   FileUtils.rm_rf(clone_folder)
 
   oclint_config = YAML.load_file(OCLINT_CONFIG_PATH)
-  file_paths = file_paths(ftp_path, oclint_config)
+  file_paths = analyze_and_return_file_paths(ftp_path, oclint_config)
 
   rds_ftp_client(
     file_paths: file_paths,
@@ -632,7 +635,7 @@ def run_oclint(ftp_path)
   FileUtils.rm_rf(OCLINT_CONFIG_PATH) unless has_oclint_config
 end
 
-def file_paths(ftp_path, oclint_config)
+def analyze_and_return_file_paths(ftp_path, oclint_config)
   app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
 
   destination_path_base = "#{ftp_path}/#{app_identifier}/#{Time.now.strftime("%Y-%m-%d")}"
@@ -659,17 +662,16 @@ def file_paths(ftp_path, oclint_config)
 
   base_extension = 'html'
   oclint_report_name = "#{report_file_name}.#{base_extension}"
-  report_path = execute_oclint(oclint_config, oclint_report_name)
   destination_path = "#{destination_path_base}/#{oclint_report_name}"
   general_destination_path = "#{general_destination_path_base}.#{base_extension}"
 
   file_paths.push({
-    :source_path => report_path,
+    :source_path => INDEX_HTML_PATH,
     :destination_path => destination_path
   })
 
   file_paths.push({
-    :source_path => report_path,
+    :source_path => INDEX_HTML_PATH,
     :destination_path => general_destination_path
   })
 end
