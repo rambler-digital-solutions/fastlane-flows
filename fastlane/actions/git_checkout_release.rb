@@ -15,8 +15,9 @@ module Fastlane
         branch_list = Actions.sh("git branch -a")
 
         
-        result_branch = release_branch if branch_list.include? release_branch
-        result_branch = hotfix_branch if branch_list.include? hotfix_branch
+        branch_list = branch_list.split(/\n/)
+	      result_branch = release_branch if branch_list.any? { |branch| branch.sub('remotes/origin', '').include?(release_branch) }
+	      result_branch = hotfix_branch if branch_list.any? { |branch| branch.sub('remotes/origin', '').include?(hotfix_branch) }
 
         if result_branch.empty?
           result_branch = release_branch
