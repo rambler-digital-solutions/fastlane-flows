@@ -248,6 +248,7 @@ private_lane :ftp_build_and_upload do |options|
   gym(
     workspace: ENV['XCWORKSPACE_NAME'],
     scheme: ENV['SCHEME'],
+    output_name: ENV['SCHEME'],
     export_method: 'enterprise',
     codesigning_identity: obtain_team_name,
     xcargs: xcode_args(options),
@@ -310,6 +311,7 @@ private_lane :fabric do |options|
   gym(
     workspace: ENV['XCWORKSPACE_NAME'],
     scheme: ENV['SCHEME'],
+    output_name: ENV['SCHEME'],
     configuration: "Release",
     clean: true,
     codesigning_identity: team_name,
@@ -350,6 +352,7 @@ private_lane :apple_testflight do |options|
   gym(
     workspace: ENV['XCWORKSPACE_NAME'],
     scheme: ENV['SCHEME'],
+    output_name: ENV['SCHEME'],
     configuration: "Release",
     clean: true,
     codesigning_identity: team_name,
