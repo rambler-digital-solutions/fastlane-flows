@@ -412,8 +412,6 @@ def post_upload_action(options)
   # Some cleaning
   clean_build_artifacts
   clear_derived_data
-  # Reset and clean working copy if needed
-  git_reset
 
   # Makes a bump version commit
   complete_version_number = version_string(
