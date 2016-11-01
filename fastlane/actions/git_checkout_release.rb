@@ -16,8 +16,8 @@ module Fastlane
 
         
         branch_list = branch_list.split(/\n/)
-	      result_branch = release_branch if branch_list.any? { |branch| branch.sub('remotes/origin', '').include?(release_branch) }
-	      result_branch = hotfix_branch if branch_list.any? { |branch| branch.sub('remotes/origin', '').include?(hotfix_branch) }
+	result_branch = release_branch if branch_list.any? { |branch| branch[2..-1].sub('remotes/origin/', '') == release_branch }
+	result_branch = hotfix_branch if branch_list.any? { |branch| branch[2..-1].sub('remotes/origin/', '') == hotfix_branch }
 
         if result_branch.empty?
           result_branch = release_branch
