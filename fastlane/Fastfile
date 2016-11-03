@@ -172,7 +172,7 @@ lane :staging do |options|
 
   # Switching to Testflight and Fabric lanes
   pre_upload_action(options)
-  #apple_testflight(options)
+  apple_testflight(options)
   fabric(options)
   post_upload_action(options)
 
