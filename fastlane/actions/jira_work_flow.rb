@@ -36,6 +36,7 @@ module Fastlane
         end
         
         if issue.status.name == 'Resolved' || issue.status.name == 'Closed'
+          puts "Issues #{issue_id} is #{issue.status.name}"
           return
         end
 
