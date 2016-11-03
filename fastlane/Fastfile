@@ -383,14 +383,8 @@ def pre_upload_action(options)
   raise "Missing version number: use version_number parameter" unless version_number != nil
   Actions.lane_context[SharedValues::VERSION_NUMBER] = version_number
 
-  # Updates version and build numbers
-  current_build = get_info_plist_value(
-    path: get_info_plist_path(),
-    key: 'CFBundleVersion'
-  )
-  build_number = current_build.to_i + 1
-  update_build_and_version_number_with_extensions(options, build_number)
-  Actions.lane_context[SharedValues::BUILD_NUMBER] = build_number
+  # Increment build
+  increment_build_number
 
   # Runs all tests, stops deployment if there are any failures
   scan(
@@ -412,6 +406,10 @@ def post_upload_action(options)
   # Some cleaning
   clean_build_artifacts
   clear_derived_data
+  git_reset
+
+  # Increment build
+  increment_build_number
 
   # Makes a bump version commit
   complete_version_number = version_string(
@@ -516,6 +514,17 @@ def make_provisioning_profiles_all_right(options, adhoc)
       plist_path: app_plist
     )
   }
+end
+
+def increment_build_number
+  # Updates version and build numbers
+  current_build = get_info_plist_value(
+    path: get_info_plist_path(),
+    key: 'CFBundleVersion'
+  )
+  build_number = current_build.to_i + 1
+  update_build_and_version_number_with_extensions(options, build_number)
+  Actions.lane_context[SharedValues::BUILD_NUMBER] = build_number
 end
 
 def update_build_and_version_number_with_extensions(options, build_number)
