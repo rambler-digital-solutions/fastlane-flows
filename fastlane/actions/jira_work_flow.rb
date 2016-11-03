@@ -34,6 +34,10 @@ module Fastlane
           puts "Issue #{issue_id} not found"
           return
         end
+        
+        if issue.status.name == 'Resolved' || issue.status.name == 'Closed'
+          return
+        end
 
         # Find Transition
         transitions = @client.Transition.all(issue: issue)
