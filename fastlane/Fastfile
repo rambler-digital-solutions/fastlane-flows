@@ -384,7 +384,7 @@ def pre_upload_action(options)
   Actions.lane_context[SharedValues::VERSION_NUMBER] = version_number
 
   # Increment build
-  increment_build_number
+  increment_build_number(options)
 
   # Runs all tests, stops deployment if there are any failures
   scan(
@@ -409,7 +409,7 @@ def post_upload_action(options)
   git_reset
 
   # Increment build
-  increment_build_number
+  increment_build_number(options)
 
   # Makes a bump version commit
   complete_version_number = version_string(
@@ -516,7 +516,7 @@ def make_provisioning_profiles_all_right(options, adhoc)
   }
 end
 
-def increment_build_number
+def increment_build_number(options)
   # Updates version and build numbers
   current_build = get_info_plist_value(
     path: get_info_plist_path(),
