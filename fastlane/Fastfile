@@ -230,6 +230,12 @@ end
 
 desc "Prepares the build and uploads it to Fabric"
 private_lane :ftp_build_and_upload do |options|
+  # Disable Apple Pay
+  rds_disable_apple_pay(
+    xcodeproj: ENV['XCODEPROJ_NAME'],
+    entitlements_file: ENV['ENTITLEMENTS_FILE'],
+    target_name: ENV['SCHEME']
+  )
 
   # Refreshing provisioning profile
   make_provisioning_profiles_all_right(options, false)
@@ -257,7 +263,6 @@ private_lane :ftp_build_and_upload do |options|
   )
 
   # Uploading to FTP
-
   @ftp_host = ENV['FTP_HOST']
   @ftp_port = ENV['FTP_PORT']
   @ftp_user = ENV['FTP_USER']
@@ -284,7 +289,6 @@ private_lane :ftp_build_and_upload do |options|
                   ftp_user: @ftp_user,
                   ftp_password: @ftp_password
   )
-
 end
 
 desc "Prepares the build and uploads it to Fabric"
