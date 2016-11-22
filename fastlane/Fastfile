@@ -592,9 +592,13 @@ end
 def setting_app_options(options)
   app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
   
+  puts "1. FastlaneLog - #{options}"
+
   options[:app_identifiers] = [app_identifier] unless options[:app_identifiers]
   options[:target_patterns] = ["^#{ENV['SCHEME']}$"] if !options[:target_patterns] && ENV['SCHEME']
   options[:app_plists] = [ENV['INFO_PLIST_PATH']] if !options[:app_plists] && ENV['INFO_PLIST_PATH']
+
+  puts "2. FastlaneLog - #{options}"
 end
 
 def provisioning_name(app_identifier = nil)
