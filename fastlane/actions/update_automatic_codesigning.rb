@@ -5,7 +5,7 @@ module Fastlane
         # Обновляем настройки подписи всех таргетов проекта
         setup_signing_in_xcodeproj(params[:path], params)
 
-        if Dir["Pods/Pods.xcodeproj"].empty?
+        unless Dir["Pods/Pods.xcodeproj"].empty?
           # Обновляем настройки таргетов в Pods.xcodeproj
           setup_signing_in_xcodeproj(Dir["Pods/Pods.xcodeproj"].first, params)
         end
