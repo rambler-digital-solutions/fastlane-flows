@@ -5,8 +5,10 @@ module Fastlane
         # Обновляем настройки подписи всех таргетов проекта
         setup_signing_in_xcodeproj(params[:path], params)
 
+        if Dir["Pods/Pods.xcodeproj"]
         # Обновляем настройки таргетов в Pods.xcodeproj
-        setup_signing_in_xcodeproj(Dir["Pods/Pods.xcodeproj"].first, params)
+          setup_signing_in_xcodeproj(Dir["Pods/Pods.xcodeproj"].first, params)
+        end
 
         UI.success("Successfully updated project settings to use ProvisioningStyle '#{params[:use_automatic_signing] ? 'Automatic' : 'Manual'}'")
       end
