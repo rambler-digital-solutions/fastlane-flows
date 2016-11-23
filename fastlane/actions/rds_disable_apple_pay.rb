@@ -5,7 +5,7 @@ module Fastlane
 
     class RdsDisableApplePayAction < Action
       def self.run(params)
-        UI.message "Starting disable ApplePay"
+        UI.message "Starting disable Apple Pay"
 
         xcodeproj_path = params[:xcodeproj] || Dir["*.xcodeproj"].first
         UI.message("Xcodeproj '#{xcodeproj_path.green}' loaded")
@@ -30,7 +30,7 @@ module Fastlane
         target_attributes = targets_attributes[main_target.uuid]
         system_capabilities = target_attributes['SystemCapabilities']
 
-        UI.user_error!("In target not enabled ApplePay.") unless system_capabilities
+        UI.user_error!("In target not enabled Apple Pay.") unless system_capabilities
         system_capabilities.delete('com.apple.ApplePay')
 
         project.save
@@ -41,7 +41,13 @@ module Fastlane
         end
         entitlements_path ||= params[:entitlements_file]
 
-        UI.user_error!("Path to entitlements file is invalid") unless File.exist?(entitlements_path)
+        unless entitlements_path
+          UI.success("Entitlements file not found. Apple Pay can't be disabled.")
+          return
+        end
+
+        entitlements_path = File.join(xcodeproj_path, '..', entitlements_path)
+
         UI.message("Entitlements with path '#{entitlements_path.green}' loaded")
 
         entitlements = Xcodeproj::Plist.read_from_path(entitlements_path) 
