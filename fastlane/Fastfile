@@ -234,7 +234,7 @@ private_lane :ftp_build_and_upload do |options|
   rds_disable_apple_pay(
     xcodeproj: ENV['XCODEPROJ_NAME'],
     entitlements_file: ENV['ENTITLEMENTS_FILE'],
-    target_name: ENV['SCHEME']
+    target_name: options[:main_target] || ENV['SCHEME']
   )
 
   # Refreshing provisioning profile
