@@ -565,7 +565,7 @@ def jira_only_changelog(tag_match_pattern, jira_project)
   }.map { |message|
     "https://jira.rambler.ru/browse/#{message.match(regexp)[1]}"
   }
-  messages.count > 0 ? messages.join("\n") : "No closed JIRA-issues"
+  messages.count > 0 ? messages.uniq.join("\n") : "No closed JIRA-issues"
 end
 
 def jira_issues(tag_match_pattern, jira_project)
