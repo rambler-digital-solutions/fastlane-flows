@@ -19,7 +19,7 @@ module Fastlane
         UI.user_error!("Could not find target with name '#{target_name.green}'.") unless target
 
         capabilities = system_capabilities(project, target)
-        return UI.success("Entitlements file not found. Apple Pay can't be disabled.") unless capabilities
+        return show_not_find_entitlements_file_message unless capabilities
 
         # Disable Apple Pay in system capabilities
         UI.message("SystemCapabilities find")
@@ -31,8 +31,10 @@ module Fastlane
 
         # Remove Apple Pay key from entitlements file
         entitlements_file = entitlements_path(target, params[:entitlements_file], xcodeproj_path)
+        return show_not_find_entitlements_file_message unless entitlements_file
+        
         entitlements = Xcodeproj::Plist.read_from_path(entitlements_file)
-        return UI.success("Entitlements file not found. Apple Pay can't be disabled.") unless entitlements
+        return show_not_find_entitlements_file_message unless entitlements
 
         UI.message("Entitlements file find")
         entitlements.delete('com.apple.developer.in-app-payments')
@@ -100,9 +102,14 @@ module Fastlane
           entitlements_path = build_configuration.build_settings["CODE_SIGN_ENTITLEMENTS"] if build_configuration.name == 'Release'
         end
         entitlements_file ||= entitlements_path
-        
-        File.join(xcodeproj_path, '..', entitlements_file)
+
+        File.join(xcodeproj_path, '..', entitlements_file) if entitlements_file
       end
+
+      def self.show_not_find_entitlements_file_message
+        UI.success("Entitlements file not found. Apple Pay can't be disabled.")
+      end
+
     end
   end
 end
