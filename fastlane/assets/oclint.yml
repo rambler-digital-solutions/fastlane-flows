@@ -3,7 +3,6 @@ rules:
 - CollapsibleIfStatements
 - ConstantConditionalOperator
 - DeadCode
-- DoubleNegative
 - ForLoopShouldBeWhileLoop
 - JumbledIncrementer
 - MisplacedNullCheck
