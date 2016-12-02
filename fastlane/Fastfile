@@ -50,6 +50,7 @@ end
 
 desc "Submit a new nightly build from develop branch to FTP"
 lane :nightly do |options|
+  puts Dir.pwd
   # Little hack: deleting all local tags to avoid problems with tag 'nightly/latest'
   sh("git tag | xargs git tag -d")
   sh("git fetch origin 'refs/tags/nightly/latest:refs/tags/nightly/latest'") rescue ''
@@ -197,6 +198,7 @@ end
 
 desc "Prepares ipa file and uploads it to RDS FTP server"
 private_lane :ftp do |options|
+  puts Dir.pwd
   # Variables declaration
   branch = options[:branch]
   @app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
@@ -622,6 +624,7 @@ OCLINT_CONFIG_PATH = 'fastlane/assets/oclint.yml'
 INDEX_HTML_PATH = 'fastlane/assets/index.html'
 
 def run_oclint(ftp_path)
+  puts Dir.pwd
   clone_folder = REPOSITORY_URL.split('/').last
   assets_dir_path = Pathname(OCLINT_CONFIG_PATH).dirname.to_s
   has_oclint_config = File.exist?(OCLINT_CONFIG_PATH)
