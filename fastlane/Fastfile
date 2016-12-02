@@ -245,8 +245,6 @@ private_lane :ftp_build_and_upload do |options|
   shield_text = options[:shield_text]
   shield_data = "#{shield_text}-blue"
   badge(shield: shield_data, dark: true)
-  
-  puts Dir.pwd
 
   # Create oclint tmp directory
   FileUtils.rm_rf(oclint_tmp_dir_path)
