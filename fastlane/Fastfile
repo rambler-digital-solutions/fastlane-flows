@@ -709,7 +709,8 @@ def execute_oclint(oclint_config, oclint_report_name, report_type = 'html')
     max_priority_3: oclint_config['max-priority-3'],
     thresholds: rule_configurations,
     enable_rules: oclint_config['rules'],
-    list_enabled_rules: oclint_config['list_enabled_rules']
+    list_enabled_rules: oclint_config['list_enabled_rules'],
+    enable_clang_static_analyzer: oclint_config['enable_clang_static_analyzer']
   )
 
   report_path
