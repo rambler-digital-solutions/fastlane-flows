@@ -86,9 +86,6 @@ lane :nightly do |options|
   # Setting up the folder for FTP upload
   options[:ftp_path] = 'nightly'
 
-  # Setting up the oclint
-  options[:oclint] = true
-
   # Setting up app options
   setting_app_options(options)
 
@@ -595,6 +592,7 @@ def setting_app_options(options)
   options[:app_identifiers] = [app_identifier] unless options[:app_identifiers]
   options[:target_patterns] = ["^#{ENV['SCHEME']}$"] if !options[:target_patterns] && ENV['SCHEME']
   options[:app_plists] = [ENV['INFO_PLIST_PATH']] if !options[:app_plists] && ENV['INFO_PLIST_PATH']
+  options[:oclint] = true if options[:oclint] == nil
 end
 
 def provisioning_name(app_identifier = nil)
