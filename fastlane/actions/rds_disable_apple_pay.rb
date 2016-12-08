@@ -5,40 +5,51 @@ module Fastlane
 
     class RdsDisableApplePayAction < Action
       def self.run(params)
+        puts "#{__LINE__} #{Dir.pwd}"
         UI.message "Starting disable Apple Pay"
 
         xcodeproj_path = params[:xcodeproj] || Dir["*.xcodeproj"].first
+        puts "#{__LINE__} #{Dir.pwd}"
 
         project = xcodeproject(xcodeproj_path)
         UI.message("Xcodeproj '#{xcodeproj_path.green}' loaded") if project
         UI.user_error!("Could not find project with path '#{xcodeproj_path.green}'.") unless project
+        puts "#{__LINE__} #{Dir.pwd}"
 
         target_name = params[:target_name]
         target = target_by_name(project, target_name)
         UI.message("Target with name '#{target_name.green}' find") if target
         UI.user_error!("Could not find target with name '#{target_name.green}'.") unless target
+        puts "#{__LINE__} #{Dir.pwd}"
 
         capabilities = system_capabilities(project, target)
+        puts "#{__LINE__} #{Dir.pwd}"
         return show_not_find_entitlements_file_message unless capabilities
 
         # Disable Apple Pay in system capabilities
         UI.message("SystemCapabilities find")
 
         capabilities.delete('com.apple.ApplePay')
+        puts "#{__LINE__} #{Dir.pwd}"
         project.save
+        puts "#{__LINE__} #{Dir.pwd}"
 
         UI.message("Apple Pay disabled in System Capabilities")
 
         # Remove Apple Pay key from entitlements file
         entitlements_file = entitlements_path(target, params[:entitlements_file], xcodeproj_path)
+        puts "#{__LINE__} #{Dir.pwd}"
         return show_not_find_entitlements_file_message unless entitlements_file
         
         entitlements = Xcodeproj::Plist.read_from_path(entitlements_file)
+        puts "#{__LINE__} #{Dir.pwd}"
         return show_not_find_entitlements_file_message unless entitlements
 
         UI.message("Entitlements file find")
         entitlements.delete('com.apple.developer.in-app-payments')
+        puts "#{__LINE__} #{Dir.pwd}"
         Xcodeproj::Plist.write_to_path(entitlements, entitlements_file)
+        puts "#{__LINE__} #{Dir.pwd}"
         UI.message("Apple Pay key removed from Entitlements file")
 
         UI.success("Successfully disabled Apple Pay")
