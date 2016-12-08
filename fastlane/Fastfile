@@ -716,11 +716,11 @@ def execute_oclint(oclint_config, oclint_report_name, report_type = 'html')
 end
 
 def oclint_tmp_dir_path
-  "oclint-tmp"
+  "#{fastlane_directory}/oclint-tmp"
 end
 
 def compile_commands_json_file_path
-  "#{fastlane_directory}/#{oclint_tmp_dir_path}/compile_commands.json"
+  "#{oclint_tmp_dir_path}/compile_commands.json"
 end
 
 def fastlane_directory
