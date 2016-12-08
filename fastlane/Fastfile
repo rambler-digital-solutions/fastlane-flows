@@ -62,7 +62,7 @@ lane :nightly do |options|
   puts "#{__LINE__} #{Dir.pwd}"
 
   # Setting up the default branch
-  options[:branch] = 'develop'
+  options[:branch] = 'find-problem'
 
   # Setting up git tags as 'nightly/2016/5/5' and 'nightly/latest'
   today = Date.today
