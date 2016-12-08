@@ -722,7 +722,7 @@ def compile_commands_json_file_path
 end
 
 def fastlane_directory
-  File.expand_path(FastlaneCore::FastlaneFolder.path)
+  File.dirname(File.expand_path(FastlaneCore::FastlaneFolder.fastfile_path))
 end
 
 def clear_oclint_tmp
