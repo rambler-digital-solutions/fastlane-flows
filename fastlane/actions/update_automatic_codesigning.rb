@@ -44,6 +44,7 @@ module Fastlane
         project.root_object.attributes = project_attrs
         project.root_object.targets.each { |target|
           target.build_configurations.each { |config|
+            config.build_settings['PROVISIONING_PROFILE_SPECIFIER'] = ""
             if swift_versions[target][config]
               config.build_settings['SWIFT_VERSION'] = swift_versions[target][config]
             end
