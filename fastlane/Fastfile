@@ -50,7 +50,6 @@ end
 
 desc "Submit a new nightly build from develop branch to FTP"
 lane :nightly do |options|
-  puts Dir.pwd
   # Little hack: deleting all local tags to avoid problems with tag 'nightly/latest'
   sh("git tag | xargs git tag -d")
   sh("git fetch origin 'refs/tags/nightly/latest:refs/tags/nightly/latest'") rescue ''
@@ -195,7 +194,6 @@ end
 
 desc "Prepares ipa file and uploads it to RDS FTP server"
 private_lane :ftp do |options|
-  puts Dir.pwd
   # Variables declaration
   branch = options[:branch]
   @app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
@@ -618,25 +616,27 @@ end
 
 FTP_ROOT_DIR = 'www'
 REPOSITORY_URL = 'https://github.com/rambler-ios/fastlane-flows.git'
-OCLINT_CONFIG_PATH = 'fastlane/assets/oclint.yml'
-INDEX_HTML_PATH = 'fastlane/assets/index.html'
-ASSETS_DIR_PATH = 'assets'
+PROJECT_ASSETS_PATH = "#{fastlane_directory}/assets"
+OCLINT_CONFIG_FILE_NAME = 'oclint.yml'
+OCLINT_HTML_REPORT_FILE_NAME = 'index.html'
 
 def run_oclint(ftp_path)
-  puts Dir.pwd
+  repository_assets_path = 'fastlane/assets'
+  oclint_config_path = "#{repository_assets_path}/#{OCLINT_CONFIG_FILE_NAME}"
+  oclint_html_report_file_path = "#{repository_assets_path}/#{OCLINT_HTML_REPORT_FILE_NAME}"
+
   clone_folder = REPOSITORY_URL.split('/').last
-  assets_dir_path = ASSETS_DIR_PATH
-  has_oclint_config = File.exist?(OCLINT_CONFIG_PATH)
-  has_index_html = File.exist?(INDEX_HTML_PATH)
+  has_oclint_config = File.exist?(oclint_config_path)
+  has_index_html = File.exist?(oclint_html_report_file_path)
 
   FileUtils.rm_rf(clone_folder)
   sh "git clone #{REPOSITORY_URL} #{clone_folder}"
-  FileUtils.mkdir_p(assets_dir_path)
-  FileUtils.cp("#{clone_folder}/#{OCLINT_CONFIG_PATH}", assets_dir_path) unless has_oclint_config
-  FileUtils.cp("#{clone_folder}/#{INDEX_HTML_PATH}", assets_dir_path) unless has_index_html
+  FileUtils.mkdir_p(PROJECT_ASSETS_PATH)
+  FileUtils.cp("#{clone_folder}/#{oclint_config_path}", PROJECT_ASSETS_PATH) unless has_oclint_config
+  FileUtils.cp("#{clone_folder}/#{oclint_html_report_file_path}", PROJECT_ASSETS_PATH) unless has_index_html
   FileUtils.rm_rf(clone_folder)
 
-  oclint_config = YAML.load_file(OCLINT_CONFIG_PATH)
+  oclint_config = YAML.load_file(oclint_config_path)
   file_paths = analyze_and_return_file_paths(ftp_path, oclint_config)
 
   rds_ftp_client(
@@ -648,7 +648,7 @@ def run_oclint(ftp_path)
     ftp_password: @ftp_password
   )
 
-  FileUtils.rm_rf(OCLINT_CONFIG_PATH) unless has_oclint_config
+  FileUtils.rm_rf(oclint_config_path) unless has_oclint_config
 end
 
 def analyze_and_return_file_paths(ftp_path, oclint_config)
@@ -680,14 +680,15 @@ def analyze_and_return_file_paths(ftp_path, oclint_config)
   oclint_report_name = "#{report_file_name}.#{base_extension}"
   destination_path = "#{destination_path_base}/#{oclint_report_name}"
   general_destination_path = "#{general_destination_path_base}.#{base_extension}"
+  project_html_report_file_path = "#{PROJECT_ASSETS_PATH}/#{OCLINT_HTML_REPORT_FILE_NAME}"
 
   file_paths.push({
-    :source_path => INDEX_HTML_PATH,
+    :source_path => project_html_report_file_path,
     :destination_path => destination_path
   })
 
   file_paths.push({
-    :source_path => INDEX_HTML_PATH,
+    :source_path => project_html_report_file_path,
     :destination_path => general_destination_path
   })
 end
