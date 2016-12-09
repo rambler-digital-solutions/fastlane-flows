@@ -616,7 +616,6 @@ end
 
 FTP_ROOT_DIR = 'www'
 REPOSITORY_URL = 'https://github.com/rambler-ios/fastlane-flows.git'
-PROJECT_ASSETS_PATH = "#{fastlane_directory}/assets"
 OCLINT_CONFIG_FILE_NAME = 'oclint.yml'
 OCLINT_HTML_REPORT_FILE_NAME = 'index.html'
 
@@ -631,9 +630,9 @@ def run_oclint(ftp_path)
 
   FileUtils.rm_rf(clone_folder)
   sh "git clone #{REPOSITORY_URL} #{clone_folder}"
-  FileUtils.mkdir_p(PROJECT_ASSETS_PATH)
-  FileUtils.cp("#{clone_folder}/#{oclint_config_path}", PROJECT_ASSETS_PATH) unless has_oclint_config
-  FileUtils.cp("#{clone_folder}/#{oclint_html_report_file_path}", PROJECT_ASSETS_PATH) unless has_index_html
+  FileUtils.mkdir_p(project_assets_path)
+  FileUtils.cp("#{clone_folder}/#{oclint_config_path}", project_assets_path) unless has_oclint_config
+  FileUtils.cp("#{clone_folder}/#{oclint_html_report_file_path}", project_assets_path) unless has_index_html
   FileUtils.rm_rf(clone_folder)
 
   oclint_config = YAML.load_file(oclint_config_path)
@@ -680,7 +679,7 @@ def analyze_and_return_file_paths(ftp_path, oclint_config)
   oclint_report_name = "#{report_file_name}.#{base_extension}"
   destination_path = "#{destination_path_base}/#{oclint_report_name}"
   general_destination_path = "#{general_destination_path_base}.#{base_extension}"
-  project_html_report_file_path = "#{PROJECT_ASSETS_PATH}/#{OCLINT_HTML_REPORT_FILE_NAME}"
+  project_html_report_file_path = "#{project_assets_path}/#{OCLINT_HTML_REPORT_FILE_NAME}"
 
   file_paths.push({
     :source_path => project_html_report_file_path,
@@ -713,6 +712,10 @@ def execute_oclint(oclint_config, oclint_report_name, report_type = 'html')
   )
 
   report_path
+end
+
+def project_assets_path
+  "#{fastlane_directory}/assets"
 end
 
 def oclint_tmp_dir_path
