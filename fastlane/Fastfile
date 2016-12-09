@@ -618,8 +618,8 @@ end
 
 FTP_ROOT_DIR = 'www'
 REPOSITORY_URL = 'https://github.com/rambler-ios/fastlane-flows.git'
-OCLINT_CONFIG_PATH = 'fastlane/assets/oclint.yml'
-INDEX_HTML_PATH = 'fastlane/assets/index.html'
+OCLINT_CONFIG_PATH = 'assets/oclint.yml'
+INDEX_HTML_PATH = 'assets/index.html'
 
 def run_oclint(ftp_path)
   puts Dir.pwd
