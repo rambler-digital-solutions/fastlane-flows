@@ -625,17 +625,17 @@ def run_oclint(ftp_path)
   oclint_html_report_file_path = "#{repository_assets_path}/#{OCLINT_HTML_REPORT_FILE_NAME}"
 
   clone_folder = REPOSITORY_URL.split('/').last
-  has_oclint_config = File.exist?(oclint_config_path)
-  has_index_html = File.exist?(oclint_html_report_file_path)
+  has_oclint_config = File.exist?(project_oclint_config_path)
+  has_index_html = File.exist?(project_html_report_file_path)
 
   FileUtils.rm_rf(clone_folder)
   sh "git clone #{REPOSITORY_URL} #{clone_folder}"
-  FileUtils.mkdir_p(project_assets_path)
+  FileUtils.mkdir_p(project_assets_path) unless File.directory?(project_assets_path)
   FileUtils.cp("#{clone_folder}/#{oclint_config_path}", project_assets_path) unless has_oclint_config
   FileUtils.cp("#{clone_folder}/#{oclint_html_report_file_path}", project_assets_path) unless has_index_html
   FileUtils.rm_rf(clone_folder)
 
-  oclint_config = YAML.load_file(oclint_config_path)
+  oclint_config = YAML.load_file(project_oclint_config_path)
   file_paths = analyze_and_return_file_paths(ftp_path, oclint_config)
 
   rds_ftp_client(
@@ -647,7 +647,7 @@ def run_oclint(ftp_path)
     ftp_password: @ftp_password
   )
 
-  FileUtils.rm_rf(oclint_config_path) unless has_oclint_config
+  FileUtils.rm_rf(project_oclint_config_path) unless has_oclint_config
 end
 
 def analyze_and_return_file_paths(ftp_path, oclint_config)
@@ -679,7 +679,6 @@ def analyze_and_return_file_paths(ftp_path, oclint_config)
   oclint_report_name = "#{report_file_name}.#{base_extension}"
   destination_path = "#{destination_path_base}/#{oclint_report_name}"
   general_destination_path = "#{general_destination_path_base}.#{base_extension}"
-  project_html_report_file_path = "#{project_assets_path}/#{OCLINT_HTML_REPORT_FILE_NAME}"
 
   file_paths.push({
     :source_path => project_html_report_file_path,
@@ -718,16 +717,24 @@ def project_assets_path
   "#{fastlane_directory}/assets"
 end
 
+def project_oclint_config_path
+  "#{project_assets_path}/#{OCLINT_CONFIG_FILE_NAME}"
+end
+
+def project_html_report_file_path
+  "#{project_assets_path}/#{OCLINT_HTML_REPORT_FILE_NAME}"
+end
+
+def fastlane_directory
+  File.dirname(File.expand_path(FastlaneCore::FastlaneFolder.fastfile_path))
+end
+
 def oclint_tmp_dir_path
   "#{fastlane_directory}/oclint-tmp"
 end
 
 def compile_commands_json_file_path
   "#{oclint_tmp_dir_path}/compile_commands.json"
-end
-
-def fastlane_directory
-  File.dirname(File.expand_path(FastlaneCore::FastlaneFolder.fastfile_path))
 end
 
 def clear_oclint_tmp
