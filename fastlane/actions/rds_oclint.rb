@@ -1,4 +1,4 @@
-require 'net/ftp'
+require 'yaml'
 
 module Fastlane
   module Actions
@@ -46,8 +46,8 @@ module Fastlane
         uploaded_oclint_html_report_file_path = "#{clone_folder}/#{OCLINT_ASSETS_DIRECTORY_PATH}/#{OCLINT_REPORT_TEMPLATE_FILE}"
 
         FileUtils.rm_rf(clone_folder)
-        sh "git clone #{oclint_assets_repository_url} #{clone_folder}"
-        FileUtils.mkdir_p(project_assets_path)
+        sh "git clone -b rds_oclint_action #{oclint_assets_repository_url} #{clone_folder}"
+        FileUtils.mkdir_p(oclint_assets_path)
         FileUtils.cp(uploaded_oclint_config_path, oclint_assets_path) unless @has_oclint_config
         FileUtils.cp(uploaded_oclint_html_report_file_path, oclint_assets_path) unless @has_oclint_report_template
         FileUtils.rm_rf(clone_folder)
@@ -56,12 +56,16 @@ module Fastlane
       def self.analyze_project
         UI.message "Analyze project"
 
+        FileUtils.rm_rf(oclint_tmp_dir_path)
+        FileUtils.mkdir(oclint_tmp_dir_path)
+
         oclint_config = YAML.load_file(oclint_config_path)
 
         rule_configurations = []
         oclint_config['rule-configurations'].map { |rc| rule_configurations.push("#{rc['key']}=#{rc['value']}") }
 
-        oclint(
+        Actions::OclintAction.run(
+          oclint_path: '/usr/local/bin/oclint',
           compile_commands: @compile_commands_file_path,
           report_path: oclint_json_report_path,
           exclude_regex: Regexp.new(Regexp.escape(oclint_config['exclude_regex'])),
@@ -78,7 +82,7 @@ module Fastlane
       def self.upload_reports
         UI.message "Upload reports"
 
-        rds_ftp_client(
+        Actions::RdsFtpClientAction.run(
           file_paths: file_paths_for_upload,
           ftp_host: @ftp_host,
           ftp_port: @ftp_port,
@@ -132,35 +136,35 @@ module Fastlane
         file_paths
       end
 
-      def oclint_config_path
+      def self.oclint_config_path
         "#{oclint_assets_path}/#{OCLINT_CONFIG_FILE}"
       end
 
-      def oclint_html_report_template_path
+      def self.oclint_html_report_template_path
         "#{oclint_assets_path}/#{OCLINT_REPORT_TEMPLATE_FILE}"
       end
 
-      def oclint_json_report_path
+      def self.oclint_json_report_path
         "#{oclint_tmp_dir_path}/#{oclint_json_report_name}"
       end
 
-      def oclint_json_report_name
+      def self.oclint_json_report_name
         'oclint_report.json'
       end
 
-      def oclint_html_report_name
-        'oclint_report.json'
+      def self.oclint_html_report_name
+        'oclint_report.html'
       end
 
-      def oclint_assets_path
+      def self.oclint_assets_path
         "#{fastlane_directory_absolute_path}/assets/oclint"
       end
 
-      def oclint_tmp_dir_path
+      def self.oclint_tmp_dir_path
         "#{fastlane_directory_absolute_path}/oclint-tmp"
       end
 
-      def fastlane_directory_absolute_path
+      def self.fastlane_directory_absolute_path
         File.dirname(File.expand_path(FastlaneCore::FastlaneFolder.fastfile_path))
       end
 
@@ -172,21 +176,22 @@ module Fastlane
         [
             FastlaneCore::ConfigItem.new(key: :compile_commands_file_path,
                                          env_name: "RDS_OCLINT_COMPILE_COMMANDS_FILE_PATH",
-                                         description: "Path to your compile_commands.json file. If you don't pass path to your file, then file need be have in your fastlane directory.",
+                                         description: "Path to your compile_commands.json file. If you don't pass path to your file, then file need be have in your fastlane directory",
+                                         default_value: 'compile_commands.json',
                                          optional: true,
                                          type: String),
             FastlaneCore::ConfigItem.new(key: :project_reports_directory_path,
                                          env_name: "RDS_OCLINT_PROJECT_REPORTS_DIRECTORY_NAME",
-                                         description: "Project reports directory path.",
+                                         description: "Project reports directory path",
                                          type: String),
             FastlaneCore::ConfigItem.new(key: :general_reports_diretory_path,
                                          env_name: "RDS_OCLINT_GENERAl_REPORTS_DIRECTORY_NAME",
-                                         description: "General reports directory path.",
+                                         description: "General reports directory path",
                                          optional: true,
                                          type: String),
             FastlaneCore::ConfigItem.new(key: :application_name,
                                          env_name: "RDS_OCLINT_APPLICATION_NAME",
-                                         description: "Application name.",
+                                         description: "Application name",
                                          type: String),
             FastlaneCore::ConfigItem.new(key: :ftp_host,
                                          env_name: "RDS_OCLINT_FTP_CLIENT_HOST",
