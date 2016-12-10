@@ -84,6 +84,7 @@ module Fastlane
 
         Actions::RdsFtpClientAction.run(
           file_paths: file_paths_for_upload,
+          ftp_root_dir: 'www',
           ftp_host: @ftp_host,
           ftp_port: @ftp_port,
           ftp_user: @ftp_user,

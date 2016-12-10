@@ -9,8 +9,7 @@ module Fastlane
 
         @file_paths = params[:file_paths]
         @ftp_root_dir = params[:ftp_root_dir]
-        puts "@ftp_root_dir -> #{@ftp_root_dir}"
-        
+
         @ftp_host = params[:ftp_host]
         @ftp_port = params[:ftp_port]
         @ftp_user = params[:ftp_user]
@@ -35,11 +34,8 @@ module Fastlane
       def self.upload_files
         @file_paths.each { |file_path|
           source_path = file_path[:source_path]
-          puts "@ftp_root_dir -> #{@ftp_root_dir}"
-          puts "file_path[:destination_path] -> #{file_path[:destination_path]}"
           destination_path = Pathname(@ftp_root_dir).join(file_path[:destination_path])
-          puts "destination_path -> #{destination_path}"
-          puts "destination_path.dirname -> #{destination_path.dirname}"
+
           root_path = Pathname(@ftp_root_dir)
           path_components = destination_path.dirname.to_s.split('/')
 
@@ -67,7 +63,7 @@ module Fastlane
             FastlaneCore::ConfigItem.new(key: :ftp_root_dir,
                                          env_name: "RDS_FTP_CLIENT_ROOT_DIR",
                                          description: "FTP root dir",
-                                         default_value: 'www',
+                                         optional: true,
                                          type: String),
             FastlaneCore::ConfigItem.new(key: :ftp_host,
                                          env_name: "RDS_FTP_CLIENT_HOST",
