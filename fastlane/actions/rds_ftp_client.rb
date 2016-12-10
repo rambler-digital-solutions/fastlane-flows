@@ -34,8 +34,11 @@ module Fastlane
       def self.upload_files
         @file_paths.each { |file_path|
           source_path = file_path[:source_path]
+          puts "@ftp_root_dir -> #{@ftp_root_dir}"
+          puts "file_path[:destination_path] -> #{file_path[:destination_path]}"
           destination_path = Pathname(@ftp_root_dir).join(file_path[:destination_path])
-
+          puts "destination_path -> #{destination_path}"
+          puts "destination_path.dirname -> #{destination_path.dirname}"
           root_path = Pathname(@ftp_root_dir)
           path_components = destination_path.dirname.to_s.split('/')
 
