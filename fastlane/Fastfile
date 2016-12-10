@@ -217,10 +217,10 @@ private_lane :ftp do |options|
       project_reports_directory_path: project_reports_directory_path(options[:ftp_path]),
       general_reports_diretory_path: general_reports_diretory_path(options[:ftp_path]),
       application_name: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier),
-      ftp_host: @ftp_host,
-      ftp_port: @ftp_port,
-      ftp_user: @ftp_user,
-      ftp_password: @ftp_password
+      ftp_host: ENV['FTP_HOST'],
+      ftp_port: ENV['FTP_PORT'],
+      ftp_user: ENV['FTP_USER'],
+      ftp_password: ENV['FTP_PASSWORD']
     )
   end
 
@@ -270,11 +270,6 @@ private_lane :ftp_build_and_upload do |options|
   )
 
   # Uploading to FTP
-  @ftp_host = ENV['FTP_HOST']
-  @ftp_port = ENV['FTP_PORT']
-  @ftp_user = ENV['FTP_USER']
-  @ftp_password = ENV['FTP_PASSWORD']
-
   ipa_path = lane_context[SharedValues::IPA_OUTPUT_PATH]
   baseurl = ENV['DEPLOY_BASEURL']
   ftp_path = options[:ftp_path]
@@ -291,10 +286,10 @@ private_lane :ftp_build_and_upload do |options|
                   build_version: "#{version_number}.#{current_build}",
                   baseurl: baseurl,
                   ftp_path: ftp_path,
-                  ftp_host: @ftp_host,
-                  ftp_port: @ftp_port,
-                  ftp_user: @ftp_user,
-                  ftp_password: @ftp_password
+                  ftp_host: ENV['FTP_HOST'],
+                  ftp_port: ENV['FTP_PORT'],
+                  ftp_user: ENV['FTP_USER'],
+                  ftp_password: ENV['FTP_PASSWORD']
   )
 end
 
