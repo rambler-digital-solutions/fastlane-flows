@@ -9,7 +9,8 @@ module Fastlane
 
         @file_paths = params[:file_paths]
         @ftp_root_dir = params[:ftp_root_dir]
-
+        puts "@ftp_root_dir -> #{@ftp_root_dir}"
+        
         @ftp_host = params[:ftp_host]
         @ftp_port = params[:ftp_port]
         @ftp_user = params[:ftp_user]
@@ -67,7 +68,6 @@ module Fastlane
                                          env_name: "RDS_FTP_CLIENT_ROOT_DIR",
                                          description: "FTP root dir",
                                          default_value: 'www',
-                                         optional: true,
                                          type: String),
             FastlaneCore::ConfigItem.new(key: :ftp_host,
                                          env_name: "RDS_FTP_CLIENT_HOST",
