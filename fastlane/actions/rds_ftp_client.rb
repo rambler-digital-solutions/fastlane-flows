@@ -64,7 +64,7 @@ module Fastlane
                                          env_name: "RDS_FTP_CLIENT_ROOT_DIR",
                                          description: "FTP root dir",
                                          optional: true,
-                                         default_value: '',
+                                         default_value: 'www',
                                          type: String),
             FastlaneCore::ConfigItem.new(key: :ftp_host,
                                          env_name: "RDS_FTP_CLIENT_HOST",

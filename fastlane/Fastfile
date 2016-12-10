@@ -211,7 +211,17 @@ private_lane :ftp do |options|
   ftp_build_and_upload(options)
 
   # Setup Oclint
-  run_oclint(options[:ftp_path]) if options[:oclint]
+  if options[:oclint]
+    rds_oclint(
+      project_reports_directory_path: project_reports_directory_path(options[:ftp_path]),
+      general_reports_diretory_path: general_reports_diretory_path(options[:ftp_path]),
+      application_name: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier),
+      ftp_host: @ftp_host,
+      ftp_port: @ftp_port,
+      ftp_user: @ftp_user,
+      ftp_password: @ftp_password
+    )
+  end
 
   # Adding git tags
   tags = options[:tags]
@@ -220,7 +230,6 @@ private_lane :ftp do |options|
   # Some cleaning
   clean_build_artifacts
   clear_derived_data
-  clear_oclint_tmp
 
   # Updating the build status for information messages
   @result = 'uploaded'
@@ -244,8 +253,7 @@ private_lane :ftp_build_and_upload do |options|
   badge(shield: shield_data, dark: true)
 
   # Create oclint tmp directory
-  FileUtils.rm_rf(oclint_tmp_dir_path)
-  FileUtils.mkdir(oclint_tmp_dir_path)
+  FileUtils.rm_rf(compile_commands_json_file_path)
   FileUtils.touch(compile_commands_json_file_path)
 
   # Building the ipa file of the enterprise build
@@ -614,129 +622,19 @@ def obtain_team_name
   team_name
 end
 
-FTP_ROOT_DIR = 'www'
-REPOSITORY_URL = 'https://github.com/rambler-ios/fastlane-flows.git'
-OCLINT_CONFIG_FILE_NAME = 'oclint.yml'
-OCLINT_HTML_REPORT_FILE_NAME = 'index.html'
-
-def run_oclint(ftp_path)
-  repository_assets_path = 'fastlane/assets'
-  oclint_config_path = "#{repository_assets_path}/#{OCLINT_CONFIG_FILE_NAME}"
-  oclint_html_report_file_path = "#{repository_assets_path}/#{OCLINT_HTML_REPORT_FILE_NAME}"
-
-  clone_folder = REPOSITORY_URL.split('/').last
-  has_oclint_config = File.exist?(project_oclint_config_path)
-  has_index_html = File.exist?(project_html_report_file_path)
-
-  FileUtils.rm_rf(clone_folder)
-  sh "git clone #{REPOSITORY_URL} #{clone_folder}"
-  FileUtils.mkdir_p(project_assets_path) unless File.directory?(project_assets_path)
-  FileUtils.cp("#{clone_folder}/#{oclint_config_path}", project_assets_path) unless has_oclint_config
-  FileUtils.cp("#{clone_folder}/#{oclint_html_report_file_path}", project_assets_path) unless has_index_html
-  FileUtils.rm_rf(clone_folder)
-
-  oclint_config = YAML.load_file(project_oclint_config_path)
-  file_paths = analyze_and_return_file_paths(ftp_path, oclint_config)
-
-  rds_ftp_client(
-    file_paths: file_paths,
-    ftp_root_dir: FTP_ROOT_DIR,
-    ftp_host: @ftp_host,
-    ftp_port: @ftp_port,
-    ftp_user: @ftp_user,
-    ftp_password: @ftp_password
-  )
-
-  FileUtils.rm_rf(project_oclint_config_path) unless has_oclint_config
+def compile_commands_json_file_path
+  "#{fastlane_directory}/compile_commands.json"
 end
 
-def analyze_and_return_file_paths(ftp_path, oclint_config)
+def project_reports_directory_path(ftp_path)
   app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
-
-  destination_path_base = "#{ftp_path}/#{app_identifier}/#{Time.now.strftime("%Y-%m-%d")}"
-  general_destination_path_base = "#{ftp_path}/oclint_reports/#{app_identifier}"
-  report_file_name = 'oclint_report'
-
-  file_paths = []
-
-  base_extension = 'json'
-  oclint_report_name = "#{report_file_name}.#{base_extension}"
-  report_path = execute_oclint(oclint_config, oclint_report_name, oclint_config['report_type'])
-  destination_path = "#{destination_path_base}/#{oclint_report_name}"
-  general_destination_path = "#{general_destination_path_base}.#{base_extension}"
-
-  file_paths.push({
-    :source_path => report_path,
-    :destination_path => destination_path
-  })
-
-  file_paths.push({
-    :source_path => report_path,
-    :destination_path => general_destination_path
-  })
-
-  base_extension = 'html'
-  oclint_report_name = "#{report_file_name}.#{base_extension}"
-  destination_path = "#{destination_path_base}/#{oclint_report_name}"
-  general_destination_path = "#{general_destination_path_base}.#{base_extension}"
-
-  file_paths.push({
-    :source_path => project_html_report_file_path,
-    :destination_path => destination_path
-  })
-
-  file_paths.push({
-    :source_path => project_html_report_file_path,
-    :destination_path => general_destination_path
-  })
+  "#{ftp_path}/#{app_identifier}"
 end
 
-def execute_oclint(oclint_config, oclint_report_name, report_type = 'html')
-  report_path = "#{oclint_tmp_dir_path}/#{oclint_report_name}"
-  
-  rule_configurations = []
-  oclint_config['rule-configurations'].map { |rc| rule_configurations.push("#{rc['key']}=#{rc['value']}") }
-
-  oclint(
-    compile_commands: compile_commands_json_file_path,
-    report_path: report_path,
-    exclude_regex: Regexp.new(Regexp.escape(oclint_config['exclude_regex'])),
-    report_type: report_type,
-    max_priority_1: oclint_config['max-priority-1'],
-    max_priority_2: oclint_config['max-priority-2'],
-    max_priority_3: oclint_config['max-priority-3'],
-    thresholds: rule_configurations,
-    enable_rules: oclint_config['rules'],
-    list_enabled_rules: oclint_config['list_enabled_rules']
-  )
-
-  report_path
-end
-
-def project_assets_path
-  "#{fastlane_directory}/assets"
-end
-
-def project_oclint_config_path
-  "#{project_assets_path}/#{OCLINT_CONFIG_FILE_NAME}"
-end
-
-def project_html_report_file_path
-  "#{project_assets_path}/#{OCLINT_HTML_REPORT_FILE_NAME}"
+def general_reports_diretory_path(ftp_path)
+  "#{ftp_path}/oclint_reports"
 end
 
 def fastlane_directory
   File.dirname(File.expand_path(FastlaneCore::FastlaneFolder.fastfile_path))
-end
-
-def oclint_tmp_dir_path
-  "#{fastlane_directory}/oclint-tmp"
-end
-
-def compile_commands_json_file_path
-  "#{oclint_tmp_dir_path}/compile_commands.json"
-end
-
-def clear_oclint_tmp
-  FileUtils.rm_rf(oclint_tmp_dir_path)
 end
