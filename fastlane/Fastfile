@@ -213,6 +213,7 @@ private_lane :ftp do |options|
   # Setup Oclint
   if options[:oclint]
     rds_oclint(
+      compile_commands_file_path: compile_commands_json_file_path,
       project_reports_directory_path: project_reports_directory_path(options[:ftp_path]),
       general_reports_diretory_path: general_reports_diretory_path(options[:ftp_path]),
       application_name: CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier),
