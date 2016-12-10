@@ -82,12 +82,6 @@ module Fastlane
       def self.upload_reports
         UI.message "Upload reports"
 
-        puts "file_paths_for_upload -> #{file_paths_for_upload}"
-        puts "@ftp_host -> #{@ftp_host}"
-        puts "@ftp_port -> #{@ftp_port}"
-        puts "@ftp_user -> #{@ftp_user}"
-        puts "@ftp_password -> #{@ftp_password}"
-
         Actions::RdsFtpClientAction.run(
           file_paths: file_paths_for_upload,
           ftp_host: @ftp_host,
