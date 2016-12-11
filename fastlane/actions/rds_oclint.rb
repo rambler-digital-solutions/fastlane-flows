@@ -46,7 +46,7 @@ module Fastlane
         uploaded_oclint_html_report_file_path = "#{clone_folder}/#{OCLINT_ASSETS_DIRECTORY_PATH}/#{OCLINT_REPORT_TEMPLATE_FILE}"
 
         FileUtils.rm_rf(clone_folder)
-        sh "git clone -b rds_oclint_action #{oclint_assets_repository_url} #{clone_folder}"
+        sh "git clone #{oclint_assets_repository_url} #{clone_folder}"
         FileUtils.mkdir_p(oclint_assets_path)
         FileUtils.cp(uploaded_oclint_config_path, oclint_assets_path) unless @has_oclint_config
         FileUtils.cp(uploaded_oclint_html_report_file_path, oclint_assets_path) unless @has_oclint_report_template
