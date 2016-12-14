@@ -196,9 +196,8 @@ desc "Prepares ipa file and uploads it to RDS FTP server"
 private_lane :ftp do |options|
   # Variables declaration
   branch = options[:branch]
-  @app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
   @name = ENV['APP_NAME']
-  @name ||= @app_identifier
+  @name ||= CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
   @result = ''
 
   # Reset and clean working copy if needed
@@ -280,8 +279,11 @@ private_lane :ftp_build_and_upload do |options|
     key: 'CFBundleVersion'
   )
 
+  ftp_folder = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+  ftp_folder = options[:ftp_folder] if options[:ftp_folder]
+
   rds_ftp_deploy(ipa_path: ipa_path,
-                  app_identifier: @app_identifier,
+                  app_identifier: ftp_folder,
                   name: @name,
                   build_version: "#{version_number}.#{current_build}",
                   baseurl: baseurl,
