@@ -196,7 +196,7 @@ desc "Prepares ipa file and uploads it to RDS FTP server"
 private_lane :ftp do |options|
   # Variables declaration
   branch = options[:branch]
-  @name = options[:upload_app_name] || ENV['APP_NAME']
+  @name = ENV['APP_NAME']
   @name ||= CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
   @result = ''
 
