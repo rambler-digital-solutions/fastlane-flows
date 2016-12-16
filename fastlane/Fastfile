@@ -249,6 +249,7 @@ private_lane :ftp_build_and_upload do |options|
 
   # Setting up the icon badge
   shield_text = options[:shield_text]
+  shield_text = update_shield_text
   shield_data = "#{shield_text}-blue"
   badge(shield: shield_data, dark: true)
 
@@ -309,6 +310,7 @@ private_lane :fabric do |options|
 
   # Setting up the icon badge
   shield_text = options[:shield_text]
+  shield_text = update_shield_text
   shield_data = "#{shield_text}-#{version_number}.#{build_number}-blue"
   badge(shield: shield_data, dark: true)
 
@@ -618,6 +620,14 @@ def obtain_team_name
   # Костыль для того, чтобы не мигрировавшие проекты продолжали собираться
   team_name = "#{prefix}#{team_name}" unless team_name.include?(prefix)
   team_name
+end
+
+def update_shield_text
+  shield_text = options[:shield_text]
+  additional_shield_text = options[:additional_shield_text]
+  
+  return shield_text unless additional_shield_text
+  "#{shield_text}(#{additional_shield_text})"
 end
 
 def compile_commands_json_file_path
