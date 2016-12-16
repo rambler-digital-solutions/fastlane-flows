@@ -249,7 +249,7 @@ private_lane :ftp_build_and_upload do |options|
 
   # Setting up the icon badge
   shield_text = options[:shield_text]
-  shield_text = update_shield_text
+  shield_text = update_shield_text_with_options(options)
   shield_data = "#{shield_text}-blue"
   badge(shield: shield_data, dark: true)
 
@@ -310,7 +310,7 @@ private_lane :fabric do |options|
 
   # Setting up the icon badge
   shield_text = options[:shield_text]
-  shield_text = update_shield_text
+  shield_text = update_shield_text_with_options(options)
   shield_data = "#{shield_text}-#{version_number}.#{build_number}-blue"
   badge(shield: shield_data, dark: true)
 
@@ -622,7 +622,7 @@ def obtain_team_name
   team_name
 end
 
-def update_shield_text
+def update_shield_text_with_options(options)
   shield_text = options[:shield_text]
   additional_shield_text = options[:additional_shield_text]
   
