@@ -197,7 +197,7 @@ private_lane :ftp do |options|
   # Variables declaration
   branch = options[:branch]
   @name = ENV['APP_NAME']
-  @name ||= CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+  @name ||= main_app_identifier
   @result = ''
 
   # Reset and clean working copy if needed
@@ -211,14 +211,11 @@ private_lane :ftp do |options|
 
   # Setup Oclint
   if options[:oclint]
-    application_name = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
-    application_name = options[:ftp_folder] if options[:ftp_folder]
-
     rds_oclint(
       compile_commands_file_path: compile_commands_json_file_path,
       project_reports_directory_path: project_reports_directory_path(options[:ftp_path]),
       general_reports_diretory_path: general_reports_diretory_path(options[:ftp_path]),
-      application_name: application_name,
+      application_name: main_app_identifier,
       ftp_host: ENV['FTP_HOST'],
       ftp_port: ENV['FTP_PORT'],
       ftp_user: ENV['FTP_USER'],
@@ -282,15 +279,12 @@ private_lane :ftp_build_and_upload do |options|
     key: 'CFBundleVersion'
   )
 
-  ftp_folder = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
-  ftp_folder = options[:ftp_folder] if options[:ftp_folder]
-
   rds_ftp_deploy(ipa_path: ipa_path,
                   app_identifier: ftp_folder,
                   name: @name,
                   build_version: "#{version_number}.#{current_build}",
                   baseurl: baseurl,
-                  ftp_path: ftp_path,
+                  ftp_path: main_app_identifier,
                   ftp_host: ENV['FTP_HOST'],
                   ftp_port: ENV['FTP_PORT'],
                   ftp_user: ENV['FTP_USER'],
@@ -639,3 +633,11 @@ end
 def fastlane_directory
   File.dirname(File.expand_path(FastlaneCore::FastlaneFolder.fastfile_path))
 end
+
+def main_app_identifier
+  main_app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+  main_app_identifier = options[:main_app_identifier] if options[:main_app_identifier]
+
+  main_app_identifier
+end
+
