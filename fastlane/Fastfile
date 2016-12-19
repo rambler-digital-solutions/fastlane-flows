@@ -325,13 +325,10 @@ private_lane :fabric do |options|
   )
 
   # Setting up testers groups for notifications
-  crashlytics_groups = ['testers'] 
+  crashlytics_groups = 'testers'
   custom_crashlytics_groups_string = ENV['FABRIC_GROUPS']
-  if custom_crashlytics_groups_string != nil
-    custom_crashlytics_groups = custom_crashlytics_groups_string.split(',')
-    crashlytics_groups = crashlytics_groups + custom_crashlytics_groups
-  end
-  
+  crashlytics_groups += ",#{custom_crashlytics_groups_string}" if custom_crashlytics_groups_string && !custom_crashlytics_groups_string.empty?
+
   # Uploading to Fabric
   crashlytics(
     crashlytics_path: "Pods/Crashlytics",
