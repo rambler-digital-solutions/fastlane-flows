@@ -280,11 +280,11 @@ private_lane :ftp_build_and_upload do |options|
   )
 
   rds_ftp_deploy(ipa_path: ipa_path,
-                  app_identifier: ftp_folder,
+                  app_identifier: main_app_identifier,
                   name: @name,
                   build_version: "#{version_number}.#{current_build}",
                   baseurl: baseurl,
-                  ftp_path: main_app_identifier,
+                  ftp_path: ftp_path,
                   ftp_host: ENV['FTP_HOST'],
                   ftp_port: ENV['FTP_PORT'],
                   ftp_user: ENV['FTP_USER'],
@@ -588,7 +588,7 @@ def get_info_plist_path
 end
 
 def setting_app_options(options)
-  app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
+  app_identifier = main_app_identifier
 
   options[:app_identifiers] = [app_identifier] unless options[:app_identifiers]
   options[:target_patterns] = ["^#{ENV['SCHEME']}$"] if !options[:target_patterns] && ENV['SCHEME']
@@ -597,7 +597,7 @@ def setting_app_options(options)
 end
 
 def provisioning_name(app_identifier = nil)
-  app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier) unless app_identifier
+  app_identifier = main_app_identifier unless app_identifier
   team_id = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
   
   "#{app_identifier}_#{team_id}"
@@ -622,8 +622,7 @@ def compile_commands_json_file_path
 end
 
 def project_reports_directory_path(ftp_path)
-  app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
-  "#{ftp_path}/#{app_identifier}"
+  "#{ftp_path}/#{main_app_identifier}"
 end
 
 def general_reports_diretory_path(ftp_path)
