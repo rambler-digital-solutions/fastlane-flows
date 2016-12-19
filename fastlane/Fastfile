@@ -197,7 +197,7 @@ private_lane :ftp do |options|
   # Variables declaration
   branch = options[:branch]
   @name = ENV['APP_NAME']
-  @name ||= main_app_identifier
+  @name ||= main_app_identifier(options)
   @result = ''
 
   # Reset and clean working copy if needed
@@ -213,9 +213,9 @@ private_lane :ftp do |options|
   if options[:oclint]
     rds_oclint(
       compile_commands_file_path: compile_commands_json_file_path,
-      project_reports_directory_path: project_reports_directory_path(options[:ftp_path]),
+      project_reports_directory_path: project_reports_directory_path(options),
       general_reports_diretory_path: general_reports_diretory_path(options[:ftp_path]),
-      application_name: main_app_identifier,
+      application_name: main_app_identifier(options),
       ftp_host: ENV['FTP_HOST'],
       ftp_port: ENV['FTP_PORT'],
       ftp_user: ENV['FTP_USER'],
@@ -280,7 +280,7 @@ private_lane :ftp_build_and_upload do |options|
   )
 
   rds_ftp_deploy(ipa_path: ipa_path,
-                  app_identifier: main_app_identifier,
+                  app_identifier: main_app_identifier(options),
                   name: @name,
                   build_version: "#{version_number}.#{current_build}",
                   baseurl: baseurl,
@@ -504,7 +504,7 @@ def make_provisioning_profiles_all_right(options, adhoc)
       app_identifier: app_id, 
       output_path: "/tmp",
       adhoc: adhoc,
-      provisioning_name: provisioning_name(app_id)
+      provisioning_name: provisioning_name(options, app_id)
     )
 
     rds_update_project_provisioning(
@@ -588,7 +588,7 @@ def get_info_plist_path
 end
 
 def setting_app_options(options)
-  app_identifier = main_app_identifier
+  app_identifier = main_app_identifier(options)
 
   options[:app_identifiers] = [app_identifier] unless options[:app_identifiers]
   options[:target_patterns] = ["^#{ENV['SCHEME']}$"] if !options[:target_patterns] && ENV['SCHEME']
@@ -596,8 +596,8 @@ def setting_app_options(options)
   options[:oclint] = true if options[:oclint] == nil
 end
 
-def provisioning_name(app_identifier = nil)
-  app_identifier = main_app_identifier unless app_identifier
+def provisioning_name(options, app_identifier = nil)
+  app_identifier = main_app_identifier(options) unless app_identifier
   team_id = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
   
   "#{app_identifier}_#{team_id}"
@@ -621,8 +621,8 @@ def compile_commands_json_file_path
   "#{fastlane_directory}/compile_commands.json"
 end
 
-def project_reports_directory_path(ftp_path)
-  "#{ftp_path}/#{main_app_identifier}"
+def project_reports_directory_path(options)
+  "#{options[:ftp_path]}/#{main_app_identifier(options)}"
 end
 
 def general_reports_diretory_path(ftp_path)
@@ -633,7 +633,7 @@ def fastlane_directory
   File.dirname(File.expand_path(FastlaneCore::FastlaneFolder.fastfile_path))
 end
 
-def main_app_identifier
+def main_app_identifier(options)
   main_app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
   main_app_identifier = options[:main_app_identifier] if options[:main_app_identifier]
 
