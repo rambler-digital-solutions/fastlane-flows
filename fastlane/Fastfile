@@ -185,6 +185,8 @@ lane :build_test do
   output_directory = 'build/reports'
 
   scan(
+    workspace: ENV['XCWORKSPACE_NAME'],
+    scheme: ENV['SCHEME'],
     output_directory: output_directory,
     skip_slack: is_ci?,
     clean: true
