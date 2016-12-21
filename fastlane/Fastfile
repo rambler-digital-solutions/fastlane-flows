@@ -55,7 +55,9 @@ lane :nightly do |options|
   sh("git fetch origin 'refs/tags/nightly/latest:refs/tags/nightly/latest'") rescue ''
 
   # Collecting a changelog from commit list
-  changelog = sh("git shortlog #{NIGHTLY_LATEST_TAG}..HEAD") rescue 'Initial version'
+  changelog = changelog_from_git_commits(
+      tag_match_pattern: "nightly/latest"
+  )
   @result = 'no changes' if changelog.empty?
 
   # Setting up the default branch
