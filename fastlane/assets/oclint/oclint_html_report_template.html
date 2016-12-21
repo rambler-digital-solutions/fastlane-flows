@@ -63,8 +63,8 @@
     </style>
     <script type="text/javascript">
         function onload() {
-        	json_file = location.pathname.split('/').pop().replace(/\.[^/.]+$/, "") + '.json'
-        	
+            json_file = location.pathname.split('/').pop().replace(/\.[^/.]+$/, "") + '.json'
+            
             xhr = new XMLHttpRequest();
             xhr.open('GET', json_file, true);
             xhr.send();
@@ -116,7 +116,7 @@
         }
 
         function createViolationsTable(violations) {
-        	var tableBody = document.getElementById('violations');
+            var tableBody = document.getElementById('violations');
             
             violations.sort(function(a, b) {
                 if (a['priority'] < b['priority']) return -1;
@@ -147,7 +147,9 @@
 
                 var priorityTD = document.createElement('td');
                 priorityTD.textContent = violation['priority'];
-                priorityTD.className = 'priority' + violation['priority'];
+
+                var priority = violation['priority']
+                priorityTD.className = (priority == 'warning') ? 'cmplr-warning' : 'priority' + priority;
                 tr.appendChild(priorityTD);
 
                 var messageTD = document.createElement('td');
