@@ -56,7 +56,7 @@ lane :nightly do |options|
 
   # Collecting a changelog from commit list
   changelog = changelog_from_git_commits(
-      tag_match_pattern: "nightly/latest"
+      tag_match_pattern: "nightly/*"
   )
   puts "changelog: \n#{changelog}"
   @result = 'no changes' if changelog.nil?
