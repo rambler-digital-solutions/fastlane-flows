@@ -58,6 +58,7 @@ lane :nightly do |options|
   changelog = changelog_from_git_commits(
       tag_match_pattern: "nightly/latest"
   )
+  puts changelog
   @result = 'no changes' if changelog.nil?
 
   # Setting up the default branch
