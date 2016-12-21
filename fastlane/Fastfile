@@ -55,8 +55,10 @@ lane :nightly do |options|
   sh("git fetch origin 'refs/tags/nightly/latest:refs/tags/nightly/latest'") rescue ''
 
   # Collecting a changelog from commit list
-  changelog = sh("git shortlog #{NIGHTLY_LATEST_TAG}..HEAD") rescue 'Initial version'
-  @result = 'no changes' if changelog.empty?
+  changelog = changelog_from_git_commits(
+      tag_match_pattern: "nightly/latest"
+  )
+  @result = 'no changes' if changelog.nil?
 
   # Setting up the default branch
   options[:branch] = 'develop'
@@ -92,7 +94,7 @@ lane :nightly do |options|
   setting_app_options(options)
 
   # Switching to ftp lane only if there were any changes
-  unless changelog.empty?
+  unless changelog.nil?
     ftp(options)
 
     # Setting output message
