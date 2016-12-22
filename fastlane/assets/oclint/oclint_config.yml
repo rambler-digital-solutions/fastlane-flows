@@ -39,6 +39,8 @@ rules:
 - TooManyMethods
 - TooManyParameters
 - UnusedLocalVariable
+- MutableObjectPropertyWithStrongAttribute
+- PointerTypePropertyWithAssignAttribute
 
 rule-configurations:
 - key: LONG_LINE
