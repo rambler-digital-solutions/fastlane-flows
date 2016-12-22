@@ -411,7 +411,8 @@ def pre_upload_action(options)
     @jira_changelog = "List of changes:\n#{changelog}"
   end
   current_branch = git_branch;
-  @jira_changelog = (@jira_changelog or "") + "\nBranch:\n#{current_branch}"
+  @jira_changelog ||= ''
+  @jira_changelog =  "#{@jira_changelog}\nBranch:\n#{current_branch}"
 end
 
 def post_upload_action(options)
