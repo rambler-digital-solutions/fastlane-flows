@@ -566,12 +566,13 @@ def jira_only_changelog(tag_match_pattern, jira_project)
   )
   return "empty" unless raw_changelog != nil
 
-  regexp = Regexp.new("(#{jira_project}-[0-9]*)").freeze
+  regexp = Regexp.new("(#{jira_project}-[0-9]*)(?:.*\#comment (.*))?").freeze
 
   messages = raw_changelog.split("\n").select { |message|
     message.match(regexp)
   }.map { |message|
-    "https://jira.rambler.ru/browse/#{message.match(regexp)[1]}"
+    comment = message.match(regexp)[2]
+    "https://jira.rambler.ru/browse/#{message.match(regexp)[1]}" + (comment ? " - #{comment}" : "") 
   }
   messages.count > 0 ? messages.uniq.join("\n") : "No closed JIRA-issues"
 end
