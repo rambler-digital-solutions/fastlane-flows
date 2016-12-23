@@ -412,7 +412,8 @@ def pre_upload_action(options)
   end
   current_branch = git_branch()
   @jira_changelog ||= ''
-  @jira_changelog =  "#{@jira_changelog}\nBranch:\n#{current_branch}"
+  @jira_changelog += "\n" unless @jira_changelog.empty?
+  @jira_changelog += "Branch:\n#{current_branch}"
 end
 
 def post_upload_action(options)
@@ -574,7 +575,8 @@ def jira_only_changelog(tag_match_pattern, jira_project)
   }.map { |message|
     jira_issue_id = message.match(regexp)[1]
     comment = message.match(regexp)[2]
-    "https://jira.rambler.ru/browse/#{jira_issue_id}" + (comment ? " – #{comment}" : '') 
+    formatted_comment = comment && !comment.empty? ?  " – #{comment}" : ''
+    "https://jira.rambler.ru/browse/#{jira_issue_id}#{formatted_comment}" 
   }
   messages.count > 0 ? messages.uniq.join("\n") : "No closed JIRA-issues"
 end
