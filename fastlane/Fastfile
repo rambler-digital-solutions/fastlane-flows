@@ -575,7 +575,7 @@ def jira_only_changelog(tag_match_pattern, jira_project)
   }.map { |message|
     jira_issue_id = message.match(regexp)[1]
     comment = message.match(regexp)[2]
-    formatted_comment = comment && !comment.empty? ?  " – #{comment}" : ''
+    formatted_comment = comment && !comment.empty? ? " – #{comment}" : ''
     "https://jira.rambler.ru/browse/#{jira_issue_id}#{formatted_comment}" 
   }
   messages.count > 0 ? messages.uniq.join("\n") : "No closed JIRA-issues"
