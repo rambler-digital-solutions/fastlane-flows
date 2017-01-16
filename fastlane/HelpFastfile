@@ -1,0 +1,145 @@
+
+############################# UTIL ##############################
+
+desc "Clear artifacts"
+def ramb_clear()
+  clean_build_artifacts
+  clear_derived_data
+  git_reset
+end
+
+desc "Checkout git branch"
+def ramb_checkout()
+  git_checkout(remote_branch: options[:branch])
+end
+
+desc "Notify to slack"
+def ramb_notify(options)
+
+  return unless is_ci? 
+
+  # Posting to a telegram chat
+  telegram(text: "#{options[:success] ? 'Success:' : 'Fail:'}: #{options[:result]}")
+
+  # Posting to Slack
+  slack(
+      message: options[:result],
+      success: options[:success]
+  )
+
+end
+
+desc "Obtain changelog"
+def ramb_raw_changelog(options)
+  changelog_from_git_commits(
+      tag_match_pattern: options[:tag_match_pattern]
+  )
+end
+
+def ramb_changelog(options)
+	changelog = ramb_raw_changelog(options)
+  changelog ||= 'no changes'
+end
+
+def jira_only_changelog(options)
+  raw_changelog = ramb_raw_changelog(options)
+  return "empty" unless raw_changelog != nil
+
+  regexp = Regexp.new("(#{options[:jira_project]}-[0-9]*)(?:.*\#comment (.*))?").freeze
+
+  messages = raw_changelog.split("\n").select { |message|
+    message.match(regexp)
+  }.map { |message|
+    jira_issue_id = message.match(regexp)[1]
+    comment = message.match(regexp)[2]
+    formatted_comment = comment && !comment.empty? ? " – #{comment}" : ''
+    "#{options[:jira_host]}/browse/#{jira_issue_id}#{formatted_comment}" 
+  }
+  changelog = messages.count > 0 ? messages.uniq.join("\n") : "No closed JIRA-issues"
+  jira_changelog = "List of changes:\n#{changelog}"
+end
+
+def jira_transition(options)
+
+  return unless options[:jira_transition]
+
+  # Search jira issues
+  issues = jira_issues(options[:tag_match_pattern],
+                       options[:jira_project])
+
+  return unless issues 
+
+  # Move issues in jira
+  jira_options = {
+    :issue_ids            => issues,
+    :jira_transition_name => options[:jira_transition_name],
+  }
+  jira_work_flow(jira_options)
+
+end
+
+def make_provisioning_profiles_all_right(options, adhoc)
+  app_ids = options[:app_identifiers]
+  target_patterns = options[:target_patterns]
+  app_plists = options[:app_plists]
+
+  app_ids.zip(target_patterns, app_plists) { |app_id, target_pattern, app_plist|
+    update_automatic_codesigning(
+      path: options[:xcodeproj_name],
+      use_automatic_signing: false
+    )
+
+    sigh(
+      app_identifier: app_id, 
+      output_path: "/tmp",
+      adhoc: adhoc,
+      provisioning_name: options[:provisioning_name]
+    )
+
+    rds_update_project_provisioning(
+      xcodeproj: options[:xcodeproj_name],
+      target_filter: target_pattern
+    )
+    
+    update_app_identifier(
+      xcodeproj: options[:xcodeproj_name],
+      app_identifier: app_id,
+      plist_path: app_plist
+    )
+  }
+end
+
+def update_build_and_version_number_with_extensions(options, build_number)
+  app_plists = options[:app_plists]
+  version_number = options[:version_number]
+
+  app_plists.each { |app_plist|
+    set_info_plist_value(
+      path: app_plist,
+      key: 'CFBundleVersion',
+      value: "#{build_number}"
+    )
+    set_info_plist_value(
+      path: app_plist,
+      key: 'CFBundleShortVersionString',
+      value: "#{version_number}"
+    )
+  }
+end
+
+def compile_commands_json_file_path
+  "#{fastlane_directory}/compile_commands.json"
+end
+
+def project_reports_directory_path(options)
+  "#{options[:ftp_path]}/#{options[:app_identifier]}"
+end
+
+def general_reports_diretory_path(ftp_path)
+  "#{ftp_path}/oclint_reports"
+end
+
+def fastlane_directory
+  File.dirname(File.expand_path(FastlaneCore::FastlaneFolder.fastfile_path))
+end
+

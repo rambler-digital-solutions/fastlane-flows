@@ -1,0 +1,64 @@
+
+############################# UPLOAD ##############################
+
+:ftp
+:fabric
+:testflight
+
+def upload(options, upload_type)
+
+  self.send(upload_type.to_sym, options)
+
+  message = "Uploaded to #{upload_type}\n"
+  UI.message(message)
+  options[:result] << message
+  
+end
+
+def fabric(options)
+	# Setting up testers groups for notifications
+  crashlytics_groups = 'testers'
+  custom_crashlytics_groups_string = ENV['FABRIC_GROUPS']
+  crashlytics_groups += ",#{custom_crashlytics_groups_string}" if custom_crashlytics_groups_string && !custom_crashlytics_groups_string.empty?
+
+  # Uploading to Fabric
+  crashlytics(
+    crashlytics_path: "Pods/Crashlytics",
+    api_token: ENV['CRASHLYTICS_API_TOKEN'],
+    build_secret: ENV['CRASHLYTICS_BUILD_SECRET'],
+    notifications: "YES",
+    notes: jira_only_changelog(options),
+    debug: true,
+    ipa_path: "#{options[:sheme]}.ipa",
+    groups: crashlytics_groups
+  )
+end
+
+def ftp(options)
+	# Uploading to FTP
+  ipa_path = lane_context[SharedValues::IPA_OUTPUT_PATH]
+  baseurl = ENV['DEPLOY_BASEURL']
+  ftp_path = options[:ftp_path]
+  build_version = "#{options[:version_number]}.#{options[:current_build]}"
+
+	rds_ftp_deploy(ipa_path: ipa_path,
+                app_identifier: options[:app_identifier],
+                name: options[:app_name],
+                build_version: build_version,
+                baseurl: baseurl,
+                ftp_path: ftp_path,
+                ftp_host: ENV['FTP_HOST'],
+                ftp_port: ENV['FTP_PORT'],
+                ftp_user: ENV['FTP_USER'],
+                ftp_password: ENV['FTP_PASSWORD']
+  )
+end
+
+def testflight(options)
+  # Uploading the final IPA file to Testflight (without distribution)
+  ENV["DELIVER_ITMSTRANSPORTER_ADDITIONAL_UPLOAD_PARAMETERS"] = "-t DAV"
+  pilot(
+    skip_submission: true,
+    changelog: jira_only_changelog(options)
+  )
+end

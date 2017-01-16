@@ -14,9 +14,10 @@ module Fastlane
           :context_path => '',
           :auth_type    => :basic
         }
+
         @client = JIRA::Client.new(options)
 
-        puts "Jira issues #{params[:issue_ids]}"
+        UI.message("Jira issues #{params[:issue_ids]}")
 
         # Move
         issues = params[:issue_ids].uniq
@@ -31,12 +32,12 @@ module Fastlane
         # Find Issue
         issue = @client.Issue.find(issue_id)
         if !issue
-          puts "Issue #{issue_id} not found"
+          UI.error("Issue #{issue_id} not found")
           return
         end
         
         if issue.status.name == 'Resolved' || issue.status.name == 'Closed'
-          puts "Issues #{issue_id} is #{issue.status.name}"
+          UI.message("Issues #{issue_id} is #{issue.status.name}")
           return
         end
 
@@ -44,14 +45,14 @@ module Fastlane
         transitions = @client.Transition.all(issue: issue)
         transition = transitions.find{ |elem| elem.name == transition_name }
         if !transition
-          puts "Can't move issue #{issue_id} to #{transition_name}"
+          UI.error("Can't move issue #{issue_id} to #{transition_name}")
           return
         end
 
         # Perform Transition
         new_transition = issue.transitions.build
         new_transition.save!("transition" => {"id" => transition.id})
-        puts "Move issue #{issue_id} to #{transition_name}"
+        UI.success("Move issue #{issue_id} to #{transition_name}")
 
       end
 
@@ -71,15 +72,18 @@ module Fastlane
           FastlaneCore::ConfigItem.new(key: :jira_username,
                                        env_name: "FL_RDS_JIRA_USERNAME",
                                        description: "Jira username",
-                                       is_string: true),
+                                       is_string: true,
+                                       default_value: ENV['JIRA_USERNAME']),
           FastlaneCore::ConfigItem.new(key: :jira_password,
                                        env_name: "FL_RDS_JIRA_PASSWORD",
                                        description: "Jira password",
-                                       is_string: true),
+                                       is_string: true,
+                                       default_value: ENV['JIRA_PASSWORD']),
           FastlaneCore::ConfigItem.new(key: :jira_host,
                                        env_name: "FL_RDS_JIRA_HOST",
                                        description: "Jira password",
-                                       is_string: true),
+                                       is_string: true,
+                                       default_value: ENV['JIRA_HOST']),
           FastlaneCore::ConfigItem.new(key: :jira_transition_name,
                                        env_name: "FL_RDS_JIRA_TRANSITION_NAME",
                                        description: "Transition name",

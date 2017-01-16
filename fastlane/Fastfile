@@ -1,196 +1,69 @@
-############################ IMPORTS ############################
-require 'date'
-require 'credentials_manager'
-require 'yaml'
-require 'fileutils'
+import "ConfigurationFastfile"
+import "BuildFastfile"
+import "UploadFastfile"
+import "HelpFastfile"
+import "HookFastfile"
 
-######################### PRECONDITIONS #########################
-default_platform :ios
+desc "Main Lane - Entry Point"
+lane :main do |options|
 
-######################### PUBLIC LANES ##########################
+	UI.message("Run main lane with options: #{JSON.pretty_generate(options)}")
+	
+	return unless obtain_config(options)
+	UI.message("Configuration setuped: #{options}")
 
-desc "Submit a new build from develop branch to FTP"
-lane :in_house do |options|
-  # Setting up the default branch
-  predefined_branch = options[:branch]
-  options[:branch] = 'develop' if predefined_branch.to_s == ''
+	changelog = ramb_raw_changelog(options)
+	UI.message("Changelog: #{changelog}")
 
-  # Setting up git tag as 'inhouse/2016/May/5/12-19'
-  month_name = Date.today.strftime("%B")
-  year = Date.today.year
-  day = Date.today.day
-  month = Date.today.month
-  dev_tag = "inhouse/#{year}/#{month_name}/#{day}/#{DateTime.now.strftime("%H-%M")}"
-  options[:tags] = [dev_tag]
+	if options[:only_if_changed] && changelog.nil?
 
-  # Setting up a new version
-  current_version = get_version_number(xcodeproj: ENV['XCODEPROJ_NAME'])
-  current_build = get_info_plist_value(
-    path: get_info_plist_path(),
-    key: 'CFBundleVersion'
-  )
-  options[:version_number] = current_version
+		message = "Build skipped - changelog empty\n"
+		options[:result] << message
+		UI.important(message)
+		return
 
-  # Setting up the icon badge
-  shield_text = "inhouse-#{year}.#{month}.#{day}"
-  options[:shield_text] = shield_text
+	end
 
-  # Setting up the folder for FTP upload
-  options[:ftp_path] = 'dev'
+	unless options[:ftp] && options[:fabric] && options[:fabric]
 
-  # Setting up app options
-  setting_app_options(options)
+		message = "Build skipped - upload type not selected!\n"
+		options[:result] << message
+		UI.important(message)
+		return
 
-  # Switching to ftp lane
-  ftp(options)
+	end
 
-  # Setting output message
-  @result = "#{@name} #{current_version}.#{current_build} (in-house) uploaded to FTP \nhttps://appdistribution.rambler.ru/dev/index.html"
-end
+	#ramb_clear(options)
 
-desc "Submit a new nightly build from develop branch to FTP"
-lane :nightly do |options|
-  # Little hack: deleting all local tags to avoid problems with tag 'nightly/latest'
-  sh("git tag | xargs git tag -d")
-  sh("git fetch origin 'refs/tags/nightly/latest:refs/tags/nightly/latest'") rescue ''
+	#ramb_checkout(options)
 
-  # Collecting a changelog from commit list
-  changelog = changelog_from_git_commits(
-      tag_match_pattern: "nightly/*"
-  )
-  puts "changelog: \n#{changelog}"
-  changelog_empty = changelog.nil? || changelog.empty?
-  @result = 'no changes' if changelog_empty
+	if options[:skip_test]
+		UI.message("Tests skipped")
+	else
+		build_test(options)
+	end
 
-  # Setting up the default branch
-  options[:branch] = 'develop'
+	prepare_project(options)
 
-  # Setting up git tags as 'nightly/2016/5/5' and 'nightly/latest'
-  today = Date.today
-  month = Date.today.month
-  year = Date.today.year
-  day = Date.today.day
-  current_tag = "nightly/#{year}/#{month}/#{day}"
-  options[:tags] = ['nightly/latest', current_tag]
-  puts(current_tag)
+	build(options)
 
-  # Setting up a new version
-  current_version = get_version_number(xcodeproj: ENV['XCODEPROJ_NAME'])
-  current_build = get_info_plist_value(
-    path: get_info_plist_path(),
-    key: 'CFBundleVersion'
-  )
-  options[:version_number] = current_version
+	[:ftp, :fabric, :testflight].each do |upload_type|
 
-  # Setting up the icon badge
-  shield_text = "nightly-#{year}.#{month}.#{day}"
-  options[:shield_text] = shield_text
+		upload(options, upload_type) if options[upload_type]
 
-  # Setting up the folder for FTP upload
-  options[:ftp_path] = 'nightly'
+	end
 
-  # Setting up the oclint
-  options[:oclint] = true if options[:oclint] == nil
+	artifactory(options)
 
-  # Setting up app options
-  setting_app_options(options)
-
-  # Switching to ftp lane only if there were any changes
-  unless changelog_empty
-    ftp(options)
-
-    # Setting output message
-    @result = "#{@name} #{current_version}.#{current_build} (nightly) uploaded to FTP \nhttps://appdistribution.rambler.ru/nightly/index.html"
-  end
-end
-
-desc "Submit a new build from develop branch to Fabric (testing flow)"
-lane :testing do |options|
-  # Setting up the default branch
-  options[:branch] = 'develop'
-
-  # Setting up git tag as 'testing/3.0.0/56'
-  current_version = get_version_number(xcodeproj: ENV['XCODEPROJ_NAME'])
-  current_build = get_info_plist_value(
-    path: get_info_plist_path(),
-    key: 'CFBundleVersion'
-  )
-  incremented_build = current_build.to_i + 1
-  testing_tag = "testing/#{current_version}/#{incremented_build}"
-  options[:tags] = [testing_tag]
-
-  # Setting up a new version
-  options[:version_number] = current_version
-
-  # Setting up the icon badge
-  shield_text = "testing"
-  options[:shield_text] = shield_text
-
-  # Setting up rules for changelog collecting
-  options[:tag_match_pattern] = "testing/*"
-
-  # Setting up app options
-  setting_app_options(options)
-
-  # Switching to Fabric lane
-  pre_upload_action(options)
-  fabric(options)
-  post_upload_action(options)
-
-  # Setting output message
-  @result = "#{@name} #{current_version}.#{incremented_build} (testing) uploaded to Fabric"
-end
-
-desc "Prepares a new release and submits it for testers via Fabric and Testflight"
-lane :staging do |options|
-  # Reset and clean working copy if needed
-  git_reset unless options[:skip_reset]
-
-  # Setting up the default branch. Checks out release/x.x.x or hotfix/x.x.x if there are suitable branches, or creates a new branch release/x.x.x
-  version = options[:version]
-  branch = git_checkout_release(version: version)
-  options[:branch] = branch
-
-  # Setting up a new version
-  options[:version_number] = version
-
-  # Setting up git tag as 'staging/3.0.0/56'
-  current_version = get_version_number(xcodeproj: ENV['XCODEPROJ_NAME'])
-  current_build = get_info_plist_value(
-    path: get_info_plist_path(),
-    key: 'CFBundleVersion'
-  )
-  incremented_build = current_build.to_i + 1
-  staging_tag = "staging/#{current_version}/#{incremented_build}"
-  options[:tags] = [staging_tag]
-
-  # Setting up the icon badge
-  shield_text = "staging"
-  options[:shield_text] = shield_text
-
-  # Setting up rules for changelog collecting
-  options[:tag_match_pattern] = "staging/*"
-
-  # Setting up app options
-  setting_app_options(options)
-
-  # Switching to Testflight and Fabric lanes
-  pre_upload_action(options)
-  #apple_testflight(options)
-  fabric(options)
-  post_upload_action(options)
-
-  # Setting output message
-  @result = "#{@name} #{current_version}.#{incremented_build} (staging) uploaded to Fabric and TestFlight"
 end
 
 desc "Run tests"
-lane :build_test do
+lane :build_test do |options|
   output_directory = 'build/reports'
 
   scan(
-    workspace: ENV['XCWORKSPACE_NAME'],
-    scheme: ENV['SCHEME'],
+    workspace: options[:xcworkspace_name],
+    scheme: options[:sheme],
     output_directory: output_directory,
     skip_slack: is_ci?,
     clean: true
@@ -198,457 +71,3 @@ lane :build_test do
 
   sh "mv ../#{output_directory}/*.junit ../#{output_directory}/report.xml"
 end
-
-######################### PRIVATE LANES #########################
-
-desc "Prepares ipa file and uploads it to RDS FTP server"
-private_lane :ftp do |options|
-  # Variables declaration
-  branch = options[:branch]
-  @name = ENV['APP_NAME']
-  @name ||= main_app_identifier(options)
-  @result = ''
-
-  # Reset and clean working copy if needed
-  git_reset unless options[:skip_reset]
-
-  # Checking out the passed branch
-  git_checkout(remote_branch: branch)
-
-  # Build, Sigh and Upload
-  ftp_build_and_upload(options)
-
-  # Setup Oclint
-  if options[:oclint]
-    rds_oclint(
-      compile_commands_file_path: compile_commands_json_file_path,
-      project_reports_directory_path: project_reports_directory_path(options),
-      general_reports_diretory_path: general_reports_diretory_path(options[:ftp_path]),
-      application_name: main_app_identifier(options),
-      ftp_host: ENV['FTP_HOST'],
-      ftp_port: ENV['FTP_PORT'],
-      ftp_user: ENV['FTP_USER'],
-      ftp_password: ENV['FTP_PASSWORD']
-    )
-  end
-
-  # Adding git tags
-  tags = options[:tags]
-  multiple_tags(tags: tags)
-
-  # Some cleaning
-  clean_build_artifacts
-  clear_derived_data
-
-  # Updating the build status for information messages
-  @result = 'uploaded'
-end
-
-desc "Prepares the build and uploads it to Fabric"
-private_lane :ftp_build_and_upload do |options|
-  # Disable Apple Pay
-  rds_disable_apple_pay(
-    xcodeproj: ENV['XCODEPROJ_NAME'],
-    entitlements_file: ENV['ENTITLEMENTS_FILE'],
-    target_name: options[:main_target] || ENV['SCHEME']
-  )
-
-  # Refreshing provisioning profile
-  make_provisioning_profiles_all_right(options, false)
-
-  # Setting up the icon badge
-  shield_text = options[:shield_text]
-  shield_data = "#{shield_text}-blue"
-  badge(shield: shield_data, dark: true)
-
-  # Create oclint tmp directory
-  FileUtils.rm_rf(compile_commands_json_file_path)
-  FileUtils.touch(compile_commands_json_file_path)
-
-  # Building the ipa file of the enterprise build
-  gym(
-    workspace: ENV['XCWORKSPACE_NAME'],
-    scheme: ENV['SCHEME'],
-    output_name: ENV['SCHEME'],
-    export_method: 'enterprise',
-    codesigning_identity: obtain_team_name,
-    xcargs: xcode_args(options),
-    disable_xcpretty: options[:disable_xcpretty],
-    xcpretty_report_json: compile_commands_json_file_path
-  )
-
-  # Uploading to FTP
-  ipa_path = lane_context[SharedValues::IPA_OUTPUT_PATH]
-  baseurl = ENV['DEPLOY_BASEURL']
-  ftp_path = options[:ftp_path]
-
-  version_number = options[:version_number]
-  current_build = get_info_plist_value(
-    path: get_info_plist_path(),
-    key: 'CFBundleVersion'
-  )
-
-  rds_ftp_deploy(ipa_path: ipa_path,
-                  app_identifier: main_app_identifier(options),
-                  name: @name,
-                  build_version: "#{version_number}.#{current_build}",
-                  baseurl: baseurl,
-                  ftp_path: ftp_path,
-                  ftp_host: ENV['FTP_HOST'],
-                  ftp_port: ENV['FTP_PORT'],
-                  ftp_user: ENV['FTP_USER'],
-                  ftp_password: ENV['FTP_PASSWORD']
-  )
-end
-
-desc "Prepares the build and uploads it to Fabric"
-private_lane :fabric do |options|
-  # Variables declaration
-  team_name = obtain_team_name
-
-  # Getting version number
-  version_number = options[:version_number]
-  build_number = get_info_plist_value(
-    path: get_info_plist_path(),
-    key: 'CFBundleVersion'
-  )
-
-  # Setting up the icon badge
-  shield_text = options[:shield_text]
-  shield_data = "#{shield_text}-#{version_number}.#{build_number}-blue"
-  badge(shield: shield_data, dark: true)
-
-  # Refreshing provisioning profile
-  make_provisioning_profiles_all_right(options, true)
-  
-  # Building the ipa file
-  gym(
-    workspace: ENV['XCWORKSPACE_NAME'],
-    scheme: ENV['SCHEME'],
-    output_name: ENV['SCHEME'],
-    configuration: "Release",
-    clean: true,
-    codesigning_identity: team_name,
-    xcargs: xcode_args(options),
-    disable_xcpretty: options[:disable_xcpretty],
-  )
-
-  # Setting up testers groups for notifications
-  crashlytics_groups = 'testers'
-  custom_crashlytics_groups_string = ENV['FABRIC_GROUPS']
-  crashlytics_groups += ",#{custom_crashlytics_groups_string}" if custom_crashlytics_groups_string && !custom_crashlytics_groups_string.empty?
-
-  # Uploading to Fabric
-  crashlytics(
-    crashlytics_path: "Pods/Crashlytics",
-    api_token: ENV['CRASHLYTICS_API_TOKEN'],
-    build_secret: ENV['CRASHLYTICS_BUILD_SECRET'],
-    notifications: "YES",
-    notes: @jira_changelog,
-    debug: true,
-    ipa_path: "#{ENV['SCHEME']}.ipa",
-    groups: crashlytics_groups
-  )
-end
-
-desc "Prepares the build and uploads it to Testflight"
-private_lane :apple_testflight do |options|
-  # Variables declaration
-  team_name = obtain_team_name
-
-  # Refreshing provisioning profile
-  make_provisioning_profiles_all_right(options, true)
-  
-  # Building the ipa file
-  gym(
-    workspace: ENV['XCWORKSPACE_NAME'],
-    scheme: ENV['SCHEME'],
-    output_name: ENV['SCHEME'],
-    configuration: "Release",
-    clean: true,
-    codesigning_identity: team_name,
-    xcargs: xcode_args(options),
-    disable_xcpretty: options[:disable_xcpretty],
-  )
-
-  # Uploading the final IPA file to Testflight (without distribution)
-  ENV["DELIVER_ITMSTRANSPORTER_ADDITIONAL_UPLOAD_PARAMETERS"] = "-t DAV"
-  pilot(
-    skip_submission: true,
-    changelog: @jira_changelog
-  )
-end
-
-###################### LANE DECOMPOSITION ######################
-
-def pre_upload_action(options)
-  # Reset and clean working copy if needed
-  git_reset unless options[:skip_reset]
-
-  # Checking out the passed branch
-  branch = options[:branch]
-  git_checkout(remote_branch: branch)
-
-  # New version number has to be specified explicitly
-  version_number = options[:version_number]
-  raise "Missing version number: use version_number parameter" unless version_number != nil
-  Actions.lane_context[SharedValues::VERSION_NUMBER] = version_number
-
-  # Increment build
-  increment_build_number(options)
-
-  # Runs all tests, stops deployment if there are any failures
-  scan(
-    workspace: ENV['XCWORKSPACE_NAME'],
-    scheme: ENV['SCHEME'],
-    clean: true
-  )
-
-  # Collecting a full changelog consisting of JIRA tasks
-  jira_project = ENV['JIRA_PROJECT']
-  if jira_project
-    changelog = jira_only_changelog(options[:tag_match_pattern],
-                                    jira_project)
-    @jira_changelog = "List of changes:\n#{changelog}"
-  end
-  current_branch = git_branch()
-  @jira_changelog ||= ''
-  @jira_changelog += "\n" unless @jira_changelog.empty?
-  @jira_changelog += "Branch:\n#{current_branch}"
-end
-
-def post_upload_action(options)
-  # Some cleaning
-  clean_build_artifacts
-  clear_derived_data
-  git_reset
-
-  # Increment build
-  increment_build_number(options)
-
-  # Makes a bump version commit
-  complete_version_number = version_string(
-    Actions.lane_context[SharedValues::VERSION_NUMBER], 
-    Actions.lane_context[SharedValues::BUILD_NUMBER]
-  )
-  commit_version_bump(
-    message: "Bumped version number tо #{complete_version_number}",
-    xcodeproj: ENV['XCODEPROJ_NAME'],
-    force: true
-  )
-  
-  # Search jira issues
-  jira_project = ENV['JIRA_PROJECT']
-  issues = nil
-  if jira_project
-    issues = jira_issues(options[:tag_match_pattern],
-                         jira_project)
-  end
-
-  # Add tag to git
-  tags = options[:tags]
-  multiple_tags(tags: tags)
-  
-  branch = options[:branch]
-  sh("git push -uf origin #{branch}")
-
-  # Move issues in jira
-  if jira_project && issues
-    jira_options = {
-      :issue_ids            => issues,
-      :jira_username        => ENV['JIRA_USERNAME'],
-      :jira_password        => ENV['JIRA_PASSWORD'],
-      :jira_host            => ENV['JIRA_HOST'],
-      :jira_transition_name => ENV['JIRA_TRANSITION_NAME'],
-    }
-    jira_work_flow(jira_options)
-  end
-end
-
-######################### POST ACTIONS #########################
-
-after_all do |lane, options|
-  if is_ci?
-    # Posting to a telegram chat
-    telegram(text: "#{@result}")
-
-    # Posting to Slack
-    slack(
-        message: "#{@result}",
-        success: true
-    )
-  end
-end
-
-error do |lane, exception|
-  if is_ci?
-    # Posting to a telegram chat
-    telegram(text: "#{@name}: fail")
-    telegram(text: "exception: #{exception.to_s}")
-
-    # Posting to Slack
-    slack(
-        message: "#{@name}: fail\nexception: #{exception.to_s}",
-        success: false
-    )
-  end
-end
-
-############################# UTIL ##############################
-
-def version_string(version_number, build_number)
-  "#{version_number}(#{build_number})"
-end
-
-def make_provisioning_profiles_all_right(options, adhoc)
-  app_ids = options[:app_identifiers]
-  target_patterns = options[:target_patterns]
-  app_plists = options[:app_plists]
-  app_ids.zip(target_patterns, app_plists) { |app_id, target_pattern, app_plist|
-    update_automatic_codesigning(
-      path: ENV['XCODEPROJ_NAME'],
-      use_automatic_signing: false
-    )
-
-    sigh(
-      app_identifier: app_id, 
-      output_path: "/tmp",
-      adhoc: adhoc,
-      provisioning_name: provisioning_name(options, app_id)
-    )
-
-    rds_update_project_provisioning(
-      xcodeproj: ENV['XCODEPROJ_NAME'],
-      target_filter: target_pattern
-    )
-    
-    update_app_identifier(
-      xcodeproj: ENV['XCODEPROJ_NAME'],
-      app_identifier: app_id,
-      plist_path: app_plist
-    )
-  }
-end
-
-def increment_build_number(options)
-  # Updates version and build numbers
-  current_build = get_info_plist_value(
-    path: get_info_plist_path(),
-    key: 'CFBundleVersion'
-  )
-  build_number = current_build.to_i + 1
-  update_build_and_version_number_with_extensions(options, build_number)
-  Actions.lane_context[SharedValues::BUILD_NUMBER] = build_number
-end
-
-def update_build_and_version_number_with_extensions(options, build_number)
-  app_plists = options[:app_plists]
-  version_number = options[:version_number]
-
-  if app_plists == nil
-    app_plists = [get_info_plist_path()]
-  end
-
-  app_plists.each { |app_plist|
-    set_info_plist_value(
-      path: app_plist,
-      key: 'CFBundleVersion',
-      value: "#{build_number}"
-    )
-    set_info_plist_value(
-      path: app_plist,
-      key: 'CFBundleShortVersionString',
-      value: "#{version_number}"
-    )
-  }
-end
-
-def jira_only_changelog(tag_match_pattern, jira_project)
-  raw_changelog = changelog_from_git_commits(
-      tag_match_pattern: tag_match_pattern
-  )
-  return "empty" unless raw_changelog != nil
-
-  regexp = Regexp.new("(#{jira_project}-[0-9]*)(?:.*\#comment (.*))?").freeze
-
-  messages = raw_changelog.split("\n").select { |message|
-    message.match(regexp)
-  }.map { |message|
-    jira_issue_id = message.match(regexp)[1]
-    comment = message.match(regexp)[2]
-    formatted_comment = comment && !comment.empty? ? " – #{comment}" : ''
-    "https://jira.rambler.ru/browse/#{jira_issue_id}#{formatted_comment}" 
-  }
-  messages.count > 0 ? messages.uniq.join("\n") : "No closed JIRA-issues"
-end
-
-def jira_issues(tag_match_pattern, jira_project)
-  raw_changelog = changelog_from_git_commits(
-      tag_match_pattern: tag_match_pattern
-  )
-  return nil unless raw_changelog != nil
-  regexp = Regexp.new("(#{jira_project}-[0-9]*)").freeze
-  messages = raw_changelog.split("\n").select { |message|
-    message.match(regexp)
-  }.map { |message|
-    message.match(regexp)[1]
-  }
-  return messages
-end
-
-def get_info_plist_path
-  File.join(ENV['XCODEPROJ_NAME'], '..', ENV['INFO_PLIST_PATH'])
-end
-
-def setting_app_options(options)
-  app_identifier = main_app_identifier(options)
-
-  options[:app_identifiers] = [app_identifier] unless options[:app_identifiers]
-  options[:target_patterns] = ["^#{ENV['SCHEME']}$"] if !options[:target_patterns] && ENV['SCHEME']
-  options[:app_plists] = [ENV['INFO_PLIST_PATH']] if !options[:app_plists] && ENV['INFO_PLIST_PATH']
-end
-
-def provisioning_name(options, app_identifier = nil)
-  app_identifier = main_app_identifier(options) unless app_identifier
-  team_id = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
-  
-  "#{app_identifier}_#{team_id}"
-end
-
-def xcode_args(options)
-  team_id = CredentialsManager::AppfileConfig.try_fetch_value(:team_id)
-  "DEVELOPMENT_TEAM=#{team_id}"
-end
-
-def obtain_team_name
-  team_name = CredentialsManager::AppfileConfig.try_fetch_value(:team_name)
-  prefix = 'iPhone Distribution: '
-
-  # Костыль для того, чтобы не мигрировавшие проекты продолжали собираться
-  team_name = "#{prefix}#{team_name}" unless team_name.include?(prefix)
-  team_name
-end
-
-def compile_commands_json_file_path
-  "#{fastlane_directory}/compile_commands.json"
-end
-
-def project_reports_directory_path(options)
-  "#{options[:ftp_path]}/#{main_app_identifier(options)}"
-end
-
-def general_reports_diretory_path(ftp_path)
-  "#{ftp_path}/oclint_reports"
-end
-
-def fastlane_directory
-  File.dirname(File.expand_path(FastlaneCore::FastlaneFolder.fastfile_path))
-end
-
-def main_app_identifier(options)
-  main_app_identifier = CredentialsManager::AppfileConfig.try_fetch_value(:app_identifier)
-  main_app_identifier = options[:main_app_identifier] if options[:main_app_identifier]
-
-  main_app_identifier
-end
-

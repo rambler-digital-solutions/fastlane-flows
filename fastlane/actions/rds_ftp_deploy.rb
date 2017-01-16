@@ -25,10 +25,10 @@ module Fastlane
         @baseurl = Pathname(params[:baseurl]).join(params[:ftp_path])
         @ftp_dir = FTP_ROOT_DIR + "/#{params[:ftp_path]}"
 
-        @ftp_host = params[:ftp_host]
-        @ftp_port = params[:ftp_port]
-        @ftp_user = params[:ftp_user]
-        @ftp_password = params[:ftp_password]
+        @ftp_host = ENV['FTP_HOST']
+        @ftp_port = ENV['FTP_PORT']
+        @ftp_user = ENV['FTP_USER']
+        @ftp_password = ENV['FTP_PASSWORD']
 
         # Подключаемся к серверу
         connect_to_ftp

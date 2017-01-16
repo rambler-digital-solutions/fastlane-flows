@@ -1,0 +1,90 @@
+
+def prepare_project(options)
+
+	adhock = options[:enterprise]
+
+	if adhock
+		# Disable Apple Pay
+	  rds_disable_apple_pay(
+	    xcodeproj: options[:xcodeproj_name],
+	    entitlements_file: options[:entitlements_file],
+	    target_name: options[:main_target]
+	  )
+    UI.message("Apple pay disabled")
+
+	  # Setting up the icon badge
+  	shield_text = options[:shield_text]
+  	shield_data = "#{shield_text}-blue"
+  	badge(shield: shield_data, dark: true)
+    UI.message("Badge changed")
+	end
+
+	if options[:increment_build]
+		build_number = options[:current_build].to_i + 1
+  	update_build_and_version_number_with_extensions(options, build_number)
+  	Actions.lane_context[SharedValues::BUILD_NUMBER] = build_number
+    UI.message("Build number incremented to #{build_number}")
+  end
+
+	make_provisioning_profiles_all_right(options, !adhock)
+
+	if options[:oclint]
+		# Create oclint tmp directory
+  	FileUtils.rm_rf(compile_commands_json_file_path)
+  	FileUtils.touch(compile_commands_json_file_path)
+    UI.message("JSON file created for oclint")
+	end
+
+end
+
+def build(options)
+
+  json_file_path = compile_commands_json_file_path
+
+  param = {
+    workspace: ENV['XCWORKSPACE_NAME'],
+    scheme: ENV['SCHEME'],
+    output_name: ENV['SCHEME'],
+    configuration: "Release",
+    clean: true,
+    export_method: options[:export_method],
+    codesigning_identity: options[:full_team_name],
+    xcargs: options[:xcode_args]
+  }
+
+  if options[:oclint]
+    param[:disable_xcpretty] = options[:disable_xcpretty]
+    param[:xcpretty_report_json] = json_file_path
+  end
+
+	gym(param)
+
+end
+
+def artifactory(options)
+
+  # Setup Oclint
+  if options[:oclint]
+    rds_oclint(
+      compile_commands_file_path: compile_commands_json_file_path,
+      project_reports_directory_path: project_reports_directory_path(options),
+      general_reports_diretory_path: general_reports_diretory_path(options[:ftp_path]),
+      application_name: options[:app_identifier]
+    )
+  end
+
+  #ramb_clear(options)
+
+  if options[:increment_build]
+    build_number = options[:current_build].to_i + 1
+    update_build_and_version_number_with_extensions(options, build_number)
+    # Little hack: deleting all local tags to avoid problems with tag 'nightly/latest'
+    sh("git tag | xargs git tag -d")
+    # Add tag to git
+    multiple_tags(tags: options[:tag_name])
+    sh("git push -uf origin #{options[:branch]}")
+  end
+
+  jira_transition(options)
+
+end

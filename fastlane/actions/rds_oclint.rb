@@ -80,7 +80,7 @@ module Fastlane
       end
 
       def self.upload_reports
-        UI.message "Upload reports"
+        UI.message "Upload reports to #{@ftp_host}\n#{file_paths_for_upload}"
 
         Actions::RdsFtpClientAction.run(
           file_paths: file_paths_for_upload,
@@ -197,22 +197,26 @@ module Fastlane
             FastlaneCore::ConfigItem.new(key: :ftp_host,
                                          env_name: "RDS_OCLINT_FTP_CLIENT_HOST",
                                          description: "FTP host",
-                                         type: String),
+                                         type: String,
+                                         default_value: ENV['FTP_HOST']),
             FastlaneCore::ConfigItem.new(key: :ftp_port,
                                          env_name: "RDS_OCLINT_FTP_CLIENT_PORT",
                                          description: "FTP port",
                                          optional: true,
-                                         type: String),
+                                         type: String,
+                                         default_value: ENV['FTP_PORT']),
             FastlaneCore::ConfigItem.new(key: :ftp_user,
                                          env_name: "RDS_OCLINT_FTP_CLIENT_USER",
                                          description: "FTP user",
                                          optional: true,
-                                         type: String),
+                                         type: String,
+                                         default_value: ENV['FTP_USER']),
             FastlaneCore::ConfigItem.new(key: :ftp_password,
                                          env_name: "RDS_OCLINT_FTP_CLIENT_PASSWORD",
                                          description: "FTP password",
                                          optional: true,
-                                         type: String)
+                                         type: String,
+                                         default_value: ENV['FTP_PASSWORD'])
         ]
       end
 
