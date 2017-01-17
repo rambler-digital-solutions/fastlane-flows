@@ -1,20 +1,4 @@
 
-import_from_git(url: 'https://github.com/rambler-ios/fastlane-flows',
-                branch: 'main-lane',
-                path: 'fastlane/ConfigurationFastfile')
-import_from_git(url: 'https://github.com/rambler-ios/fastlane-flows',
-                branch: 'main-lane',
-                path: 'fastlane/BuildFastfile')
-import_from_git(url: 'https://github.com/rambler-ios/fastlane-flows',
-                branch: 'main-lane',
-                path: 'fastlane/UploadFastfile')
-import_from_git(url: 'https://github.com/rambler-ios/fastlane-flows',
-                branch: 'main-lane',
-                path: 'fastlane/HelpFastfile')
-import_from_git(url: 'https://github.com/rambler-ios/fastlane-flows',
-                branch: 'main-lane',
-                path: 'fastlane/HookFastfile')
-
 desc "Main Lane - Entry Point"
 lane :main do |options|
 
