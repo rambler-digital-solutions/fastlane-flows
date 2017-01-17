@@ -1,8 +1,8 @@
-import "actions/ConfigurationFastfile"
-import "actions/BuildFastfile"
-import "actions/UploadFastfile"
-import "actions/HelpFastfile"
-import "actions/HookFastfile"
+import "assets/ConfigurationFastfile"
+import "assets/BuildFastfile"
+import "assets/UploadFastfile"
+import "assets/HelpFastfile"
+import "assets/HookFastfile"
 
 desc "Main Lane - Entry Point"
 lane :main do |options|
