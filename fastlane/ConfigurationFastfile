@@ -3,7 +3,7 @@
 
 def obtain_config(options)
 
-	predefined_branch = options[:branch]
+  predefined_branch = options[:branch]
   options[:branch] = 'develop' if predefined_branch.to_s == ''
 
   options[:xcodeproj_name] = ENV['XCODEPROJ_NAME']
@@ -14,6 +14,7 @@ def obtain_config(options)
 
 
   # Setting up a new version
+  puts "info plist path #{ENV['INFO_PLIST_PATH']}"
   current_version = get_version_number(xcodeproj: options[:xcodeproj_name])
   options[:version_number] = current_version
 
