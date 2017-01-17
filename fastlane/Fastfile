@@ -82,7 +82,7 @@ def obtain_config(options)
 
 
   # Setting up a new version
-  puts "info plist path #{ENV['INFO_PLIST_PATH']}"
+  puts "info plist path #{options[:info_plist_path]}"
   current_version = get_version_number(xcodeproj: options[:xcodeproj_name])
   options[:version_number] = current_version
 
