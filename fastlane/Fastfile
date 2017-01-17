@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 import_from_git(url: 'https://github.com/rambler-ios/fastlane-flows',
                 branch: 'main-lane',
@@ -15,6 +16,13 @@ import_from_git(url: 'https://github.com/rambler-ios/fastlane-flows',
                 branch: 'main-lane',
                 path: 'fastlane/HookFastfile')
                 
+=======
+import "assets/ConfigurationFastfile"
+import "assets/BuildFastfile"
+import "assets/UploadFastfile"
+import "assets/HelpFastfile"
+import "assets/HookFastfile"
+>>>>>>> main-lane
 
 desc "Main Lane - Entry Point"
 lane :main do |options|
