@@ -66,3 +66,468 @@ lane :build_test do |options|
 
   sh "mv ../#{output_directory}/*.junit ../#{output_directory}/report.xml"
 end
+
+############################# Configuration ##############################
+
+def obtain_config(options)
+
+  predefined_branch = options[:branch]
+  options[:branch] = 'develop' if predefined_branch.to_s == ''
+
+  options[:xcodeproj_name] = ENV['XCODEPROJ_NAME']
+  options[:xcworkspace_name] = ENV['XCWORKSPACE_NAME']
+  options[:sheme] = ENV['SCHEME']
+  options[:info_plist_path] = File.join(options[:xcodeproj_name], '..', ENV['INFO_PLIST_PATH'])
+  options[:entitlements_file] = ENV['ENTITLEMENTS_FILE']
+
+
+  # Setting up a new version
+  puts "info plist path #{ENV['INFO_PLIST_PATH']}"
+  current_version = get_version_number(xcodeproj: options[:xcodeproj_name])
+  options[:version_number] = current_version
+
+  current_build = get_info_plist_value(
+    path: options[:info_plist_path],
+    key: 'CFBundleVersion'
+  )
+  options[:current_build] = current_build
+
+  options[:team_id] = options[:enterprise] ? ENV['ENTERPRISE_TEAM_ID'] : ENV['TEAM_ID']
+  options[:xcode_args] = "DEVELOPMENT_TEAM=#{options[:team_id]}"
+
+  options[:provisioning_name] = "#{options[:app_identifier]}_#{options[:team_id]}"
+
+
+  # Setting up the folder for FTP upload
+  options[:ftp_path] = options[:nightly] ? 'nightly' : 'dev'
+
+  options[:export_method] = options[:enterprise] ? 'enterprise' : 'release'
+
+  options[:tag_match_pattern] = options[:nightly] ? 'nightly/*' : 'distribution/*'
+
+  month_name = Date.today.strftime("%B")
+  year = Date.today.year
+  day = Date.today.day
+  month = Date.today.month
+  tag_name = options[:nightly] ? 'nightly' : 'distribution'
+  options[:tag_name] = "tag_name/#{year}/#{month_name}/#{day}/#{DateTime.now.strftime("%H-%M")}"
+
+  options[:main_target] ||= options[:sheme]
+  options[:team_name] = options[:enterprise] ? ENV['ENTERPRISE_TEAM_NAME'] : ENV['TEAM_NAME'] 
+  prefix = 'iPhone Distribution: '
+  options[:full_team_name] = "#{prefix}#{options[:team_name]}" unless options[:team_name].include?(prefix)
+
+  options[:app_identifier] = options[:enterprise] ? ENV['ENTERPRISE_APP_IDENTIFIER'] : ENV['APP_IDENTIFIER'] 
+  options[:app_identifiers] ||= [options[:app_identifier]]
+
+  options[:target_patterns] = ["^#{ENV['SCHEME']}$"] if !options[:target_patterns] && ENV['SCHEME']
+  options[:app_plists] = [ENV['INFO_PLIST_PATH']] if !options[:app_plists] && ENV['INFO_PLIST_PATH']
+
+  options[:apple_id] = ENV['APPLE_ID']
+
+  options[:app_name] = ENV['APP_NAME']
+  options[:app_name] ||= options[:app_identifier]
+
+  options[:jira_project] = ENV['JIRA_PROJECT']
+  options[:jira_transition_name]  = ENV['JIRA_TRANSITION_NAME']
+  options[:jira_host] = ENV['JIRA_HOST']
+  options[:jira_transition] = nil unless options[:jira_project]
+  options[:jira_transition] = nil unless options[:jira_transition_name]
+
+  return false unless validate_config(options)
+
+  options[:result] = "Start build #{options[:nightly] ? 'nightly' : ''} #{options[:app_name]}\n"
+  options[:result] << "From #{options[:branch]} branch with #{options[:export_method]} configuration.\n"
+  options[:result] << "Upload to #{options[:ftp] ? 'ftp' : ''} #{options[:fabric] ? 'fabric' : ''} #{options[:testflight] ? 'testflight' : ''}\n"
+  options[:result] << "Increment build from #{options[:current_build]} to #{options[:current_build].to_i + 1}\n" if options[:increment_build]
+  options[:result] << "Tests skipped\n" if options[:skip_test]
+  options[:result] << "Oclint analyze enabled\n" if options[:oclint]
+  options[:result] << "Jira transition enabled\n" if options[:jira_transition]
+
+  return true
+
+end
+
+def validate_config(options)
+
+  if options[:oclint] && !options[:nightly]
+
+    options[:oclint] = false
+
+    message = "Oclint work only on nightly! Do not waste my time! Oclint disabled!\n"
+    UI.error message
+    options[:result] << message
+
+  end
+
+  if (options[:testflight] || options[:fabric]) && options[:enterprise]
+
+    options[:testflight] = nil
+    build_type = options[:testflight] ? 'TestFlight' : 'Fabric';
+    message = "You're trying to build enterprise for uploading to #{build_type}! Don't be daft! #{build_type} uploading disabled!\n"
+    UI.error message
+    options[:result] << message
+
+  end
+
+  if options[:ftp] && !options[:enterprise]
+
+    options[:ftp] = nil
+    message = "You're trying to build not enterprise for uploading to ftp! Ftp uploading disabled!\n"
+    UI.error message
+    options[:result] << message
+
+  end
+
+  if options[:nightly] && options[:jira_transition]
+
+    options[:jira_transition] = nil
+    message = "You're enabled to jira transitions for nightly build! You are so freaky, dude. Jira transitionsdisabled!\n"
+    UI.error message
+    options[:result] << message
+
+  end
+
+  required_parameters = [:xcodeproj_name,
+                         :xcworkspace_name,
+                         :sheme,
+                         :info_plist_path,
+                         :team_name,
+                         :app_identifier,
+                         :target_patterns,
+                         :app_plists,
+                         :apple_id,
+                         :app_name]
+
+  required_parameters.each do |param|
+    unless options[param]
+      message = "Parameter #{param} not provided!"
+      UI.error message
+      options[:result] << message
+    end
+  end
+
+end
+
+############################# BUILD ##############################
+
+def prepare_project(options)
+
+	adhock = options[:enterprise]
+
+	if adhock
+		# Disable Apple Pay
+	  rds_disable_apple_pay(
+	    xcodeproj: options[:xcodeproj_name],
+	    entitlements_file: options[:entitlements_file],
+	    target_name: options[:main_target]
+	  )
+    UI.message("Apple pay disabled")
+
+	  # Setting up the icon badge
+  	shield_text = options[:shield_text]
+  	shield_data = "#{shield_text}-blue"
+  	badge(shield: shield_data, dark: true)
+    UI.message("Badge changed")
+	end
+
+	if options[:increment_build]
+		build_number = options[:current_build].to_i + 1
+  	update_build_and_version_number_with_extensions(options, build_number)
+  	Actions.lane_context[SharedValues::BUILD_NUMBER] = build_number
+    UI.message("Build number incremented to #{build_number}")
+  end
+
+	make_provisioning_profiles_all_right(options, !adhock)
+
+	if options[:oclint]
+		# Create oclint tmp directory
+  	FileUtils.rm_rf(compile_commands_json_file_path)
+  	FileUtils.touch(compile_commands_json_file_path)
+    UI.message("JSON file created for oclint")
+	end
+
+end
+
+def build(options)
+
+  json_file_path = compile_commands_json_file_path
+
+  param = {
+    workspace: ENV['XCWORKSPACE_NAME'],
+    scheme: ENV['SCHEME'],
+    output_name: ENV['SCHEME'],
+    configuration: "Release",
+    clean: true,
+    export_method: options[:export_method],
+    codesigning_identity: options[:full_team_name],
+    xcargs: options[:xcode_args]
+  }
+
+  if options[:oclint]
+    param[:disable_xcpretty] = options[:disable_xcpretty]
+    param[:xcpretty_report_json] = json_file_path
+  end
+
+	gym(param)
+
+end
+
+def artifactory(options)
+
+  # Setup Oclint
+  if options[:oclint]
+    rds_oclint(
+      compile_commands_file_path: compile_commands_json_file_path,
+      project_reports_directory_path: project_reports_directory_path(options),
+      general_reports_diretory_path: general_reports_diretory_path(options[:ftp_path]),
+      application_name: options[:app_identifier]
+    )
+  end
+
+  #ramb_clear(options)
+
+  if options[:increment_build]
+    build_number = options[:current_build].to_i + 1
+    update_build_and_version_number_with_extensions(options, build_number)
+    # Little hack: deleting all local tags to avoid problems with tag 'nightly/latest'
+    sh("git tag | xargs git tag -d")
+    # Add tag to git
+    multiple_tags(tags: options[:tag_name])
+    sh("git push -uf origin #{options[:branch]}")
+  end
+
+  jira_transition(options)
+
+end
+
+############################# UPLOAD ##############################
+
+:ftp
+:fabric
+:testflight
+
+def upload(options, upload_type)
+
+  self.send(upload_type.to_sym, options)
+
+  message = "Uploaded to #{upload_type}\n"
+  UI.message(message)
+  options[:result] << message
+  
+end
+
+def fabric(options)
+	# Setting up testers groups for notifications
+  crashlytics_groups = 'testers'
+  custom_crashlytics_groups_string = ENV['FABRIC_GROUPS']
+  crashlytics_groups += ",#{custom_crashlytics_groups_string}" if custom_crashlytics_groups_string && !custom_crashlytics_groups_string.empty?
+
+  # Uploading to Fabric
+  crashlytics(
+    crashlytics_path: "Pods/Crashlytics",
+    api_token: ENV['CRASHLYTICS_API_TOKEN'],
+    build_secret: ENV['CRASHLYTICS_BUILD_SECRET'],
+    notifications: "YES",
+    notes: jira_only_changelog(options),
+    debug: true,
+    ipa_path: "#{options[:sheme]}.ipa",
+    groups: crashlytics_groups
+  )
+end
+
+def ftp(options)
+	# Uploading to FTP
+  ipa_path = lane_context[SharedValues::IPA_OUTPUT_PATH]
+  baseurl = ENV['DEPLOY_BASEURL']
+  ftp_path = options[:ftp_path]
+  build_version = "#{options[:version_number]}.#{options[:current_build]}"
+
+	rds_ftp_deploy(ipa_path: ipa_path,
+                app_identifier: options[:app_identifier],
+                name: options[:app_name],
+                build_version: build_version,
+                baseurl: baseurl,
+                ftp_path: ftp_path,
+                ftp_host: ENV['FTP_HOST'],
+                ftp_port: ENV['FTP_PORT'],
+                ftp_user: ENV['FTP_USER'],
+                ftp_password: ENV['FTP_PASSWORD']
+  )
+end
+
+def testflight(options)
+  # Uploading the final IPA file to Testflight (without distribution)
+  ENV["DELIVER_ITMSTRANSPORTER_ADDITIONAL_UPLOAD_PARAMETERS"] = "-t DAV"
+  pilot(
+    skip_submission: true,
+    changelog: jira_only_changelog(options)
+  )
+end
+
+######################### HOOK #########################
+
+after_all do |lane, options|
+  if is_ci?
+    options[:result] << "Mission Successfully Completed!\n"
+    options[:result] << "#{ENV['BUILD_URL']}consoleText on #{ENV['NODE_NAME']}\n" if ENV['BUILD_URL']
+  	options[:success] = true
+  	ramb_notify(options)
+  	UI.success(options[:result])
+  end
+end
+
+error do |lane, exception, options|
+  if is_ci?
+  	options[:result] << "Mission Failed!\n"
+  	options[:result] << "Exception: #{exception.to_s}\n"
+  	options[:result] << "#{ENV['BUILD_URL']}consoleText on #{ENV['NODE_NAME']}\n" if ENV['BUILD_URL']
+  	options[:success] = false
+  	ramb_notify(options)
+  	UI.error(options[:result])
+  end
+end
+
+############################# UTIL ##############################
+
+desc "Clear artifacts"
+def ramb_clear()
+  clean_build_artifacts
+  clear_derived_data
+  git_reset
+end
+
+desc "Checkout git branch"
+def ramb_checkout()
+  git_checkout(remote_branch: options[:branch])
+end
+
+desc "Notify to slack"
+def ramb_notify(options)
+
+  return unless is_ci? 
+
+  # Posting to a telegram chat
+  telegram(text: "#{options[:success] ? 'Success:' : 'Fail:'}: #{options[:result]}")
+
+  # Posting to Slack
+  slack(
+      message: options[:result],
+      success: options[:success]
+  )
+
+end
+
+desc "Obtain changelog"
+def ramb_raw_changelog(options)
+  changelog_from_git_commits(
+      tag_match_pattern: options[:tag_match_pattern]
+  )
+end
+
+def ramb_changelog(options)
+	changelog = ramb_raw_changelog(options)
+  changelog ||= 'no changes'
+end
+
+def jira_only_changelog(options)
+  raw_changelog = ramb_raw_changelog(options)
+  return "empty" unless raw_changelog != nil
+
+  regexp = Regexp.new("(#{options[:jira_project]}-[0-9]*)(?:.*\#comment (.*))?").freeze
+
+  messages = raw_changelog.split("\n").select { |message|
+    message.match(regexp)
+  }.map { |message|
+    jira_issue_id = message.match(regexp)[1]
+    comment = message.match(regexp)[2]
+    formatted_comment = comment && !comment.empty? ? " – #{comment}" : ''
+    "#{options[:jira_host]}/browse/#{jira_issue_id}#{formatted_comment}" 
+  }
+  changelog = messages.count > 0 ? messages.uniq.join("\n") : "No closed JIRA-issues"
+  jira_changelog = "List of changes:\n#{changelog}"
+end
+
+def jira_transition(options)
+
+  return unless options[:jira_transition]
+
+  # Search jira issues
+  issues = jira_issues(options[:tag_match_pattern],
+                       options[:jira_project])
+
+  return unless issues 
+
+  # Move issues in jira
+  jira_options = {
+    :issue_ids            => issues,
+    :jira_transition_name => options[:jira_transition_name],
+  }
+  jira_work_flow(jira_options)
+
+end
+
+def make_provisioning_profiles_all_right(options, adhoc)
+  app_ids = options[:app_identifiers]
+  target_patterns = options[:target_patterns]
+  app_plists = options[:app_plists]
+
+  app_ids.zip(target_patterns, app_plists) { |app_id, target_pattern, app_plist|
+    update_automatic_codesigning(
+      path: options[:xcodeproj_name],
+      use_automatic_signing: false
+    )
+
+    sigh(
+      app_identifier: app_id, 
+      output_path: "/tmp",
+      adhoc: adhoc,
+      provisioning_name: options[:provisioning_name]
+    )
+
+    rds_update_project_provisioning(
+      xcodeproj: options[:xcodeproj_name],
+      target_filter: target_pattern
+    )
+    
+    update_app_identifier(
+      xcodeproj: options[:xcodeproj_name],
+      app_identifier: app_id,
+      plist_path: app_plist
+    )
+  }
+end
+
+def update_build_and_version_number_with_extensions(options, build_number)
+  app_plists = options[:app_plists]
+  version_number = options[:version_number]
+
+  app_plists.each { |app_plist|
+    set_info_plist_value(
+      path: app_plist,
+      key: 'CFBundleVersion',
+      value: "#{build_number}"
+    )
+    set_info_plist_value(
+      path: app_plist,
+      key: 'CFBundleShortVersionString',
+      value: "#{version_number}"
+    )
+  }
+end
+
+def compile_commands_json_file_path
+  "#{fastlane_directory}/compile_commands.json"
+end
+
+def project_reports_directory_path(options)
+  "#{options[:ftp_path]}/#{options[:app_identifier]}"
+end
+
+def general_reports_diretory_path(ftp_path)
+  "#{ftp_path}/oclint_reports"
+end
+
+def fastlane_directory
+  File.dirname(File.expand_path(FastlaneCore::FastlaneFolder.fastfile_path))
+end
