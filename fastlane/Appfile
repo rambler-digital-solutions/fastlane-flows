@@ -1,6 +1,0 @@
-for_lane :main do
-  app_identifier 'ru.ramblerco.livejournal.enterprise'
-  apple_id "jenkins.ci@rambler-co.ru"
-  team_name 'RAMBLER INTERNET KHOLDING, OOO'
-  team_id '7SMPM83ZV6'
-end
