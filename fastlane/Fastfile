@@ -93,6 +93,7 @@ def obtain_config(options)
   options[:current_build] = current_build
 
   options[:team_id] = options[:enterprise] ? ENV['ENTERPRISE_TEAM_ID'] : ENV['TEAM_ID']
+  ENV[FASTLANE_ITC_TEAM_ID] = options[:team_id]
   options[:xcode_args] = "DEVELOPMENT_TEAM=#{options[:team_id]}"
 
   options[:provisioning_name] = "#{options[:app_identifier]}_#{options[:team_id]}"
