@@ -15,7 +15,7 @@ lane :main do |options|
 		message = "Build skipped - changelog empty\n"
 		options[:result] << message
 		UI.important(message)
-		return
+		next
 
 	end
 
@@ -24,7 +24,7 @@ lane :main do |options|
 		message = "Build skipped - upload type not selected!\n"
 		options[:result] << message
 		UI.important(message)
-		return
+		next
 
 	end
 
