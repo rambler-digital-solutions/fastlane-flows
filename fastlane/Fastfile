@@ -28,9 +28,9 @@ lane :main do |options|
 
 	end
 
-	#ramb_clear(options)
+	ramb_clear(options)
 
-	#ramb_checkout(options)
+	ramb_checkout(options)
 
 	if options[:skip_test]
 		UI.message("Tests skipped")
