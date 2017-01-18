@@ -19,7 +19,7 @@ lane :main do |options|
 
 	end
 
-	unless options[:ftp] && options[:fabric] && options[:fabric]
+	if !options[:ftp] && !options[:fabric] && !options[:fabric]
 
 		message = "Build skipped - upload type not selected!\n"
 		options[:result] << message
