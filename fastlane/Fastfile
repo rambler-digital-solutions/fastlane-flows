@@ -286,7 +286,7 @@ def artifactory(options)
     )
   end
 
-  ramb_clear(options)
+  ramb_clear
 
   if options[:increment_build]
     build_number = options[:current_build].to_i + 1
