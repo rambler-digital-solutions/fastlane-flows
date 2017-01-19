@@ -296,7 +296,7 @@ def artifactory(options)
     # Little hack: deleting all local tags to avoid problems with tag 'nightly/latest'
     sh("git tag | xargs git tag -d")
     # Add tag to git
-    multiple_tags(tags: options[:tag_name])
+    multiple_tags(tags: [options[:tag_name]])
     sh("git push -uf origin #{options[:branch]}")
   end
 
