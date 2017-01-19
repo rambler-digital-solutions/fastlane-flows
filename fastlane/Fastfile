@@ -80,7 +80,7 @@ def obtain_config(options)
   options[:info_plist_path] = File.join(options[:xcodeproj_name], '..', ENV['INFO_PLIST_PATH'])
   options[:entitlements_file] = ENV['ENTITLEMENTS_FILE']
 
-  options[:enterprise] ||= optins[:ftp]
+  options[:enterprise] ||= options[:ftp]
 
 
   # Setting up a new version
