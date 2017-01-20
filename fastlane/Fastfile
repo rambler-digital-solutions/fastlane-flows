@@ -334,7 +334,7 @@ private_lane :fabric do |options|
   )
 
   # Setting up testers groups for notifications
-  crashlytics_groups = 'testers'
+  crashlytics_groups = 'testers, RDS iOS test dev'
   custom_crashlytics_groups_string = ENV['FABRIC_GROUPS']
   crashlytics_groups += ",#{custom_crashlytics_groups_string}" if custom_crashlytics_groups_string && !custom_crashlytics_groups_string.empty?
 
