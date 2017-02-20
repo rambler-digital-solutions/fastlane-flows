@@ -19,7 +19,7 @@ lane :main do |options|
 
 	end
 
-	if !options[:ftp] && !options[:fabric] && !options[:fabric]
+	if !options[:ftp] && !options[:testflight] && !options[:fabric]
 
 		message = "Build skipped - upload type not selected!\n"
 		options[:result] << message
@@ -71,8 +71,8 @@ end
 
 def obtain_config(options)
 
-  predefined_branch = options[:branch]
-  options[:branch] = 'develop' if predefined_branch.to_s == ''
+  predefined_branch = options[:branch].gsub(/^origin\//, '')
+  options[:branch] = predefined_branch.to_s == '' ? 'develop' : predefined_branch
 
   options[:xcodeproj_name] = ENV['XCODEPROJ_NAME']
   options[:xcworkspace_name] = ENV['XCWORKSPACE_NAME']
@@ -104,7 +104,7 @@ def obtain_config(options)
   # Setting up the folder for FTP upload
   options[:ftp_path] = options[:nightly] ? 'nightly' : 'dev'
 
-  options[:export_method] = options[:enterprise] ? 'enterprise' : 'release'
+  options[:export_method] = options[:enterprise] ? 'enterprise' : 'app-store'
 
   options[:tag_match_pattern] = options[:nightly] ? 'nightly/*' : 'distribution/*'
 
@@ -113,7 +113,7 @@ def obtain_config(options)
   day = Date.today.day
   month = Date.today.month
   tag_name = options[:nightly] ? 'nightly' : 'distribution'
-  options[:tag_name] = "tag_name/#{year}/#{month_name}/#{day}/#{DateTime.now.strftime("%H-%M")}"
+  options[:tag_name] = "#{tag_name}/#{year}/#{month_name}/#{day}/#{DateTime.now.strftime("%H-%M")}"
 
   options[:main_target] ||= options[:sheme]
   options[:team_name] = options[:enterprise] ? ENV['ENTERPRISE_TEAM_NAME'] : ENV['TEAM_NAME'] 
@@ -293,6 +293,11 @@ def artifactory(options)
   if options[:increment_build]
     build_number = options[:current_build].to_i + 1
     update_build_and_version_number_with_extensions(options, build_number)
+    # Makes a bump version commit
+    complete_version_number = "#{options[:version_number]}(#{options[:current_build]})"
+    message = "Bumped version number tо #{complete_version_number}"
+    sh("git commit -am #{message.shellescape}")
+    UI.success("Successfully committed #{message.shellescape}")
     # Little hack: deleting all local tags to avoid problems with tag 'nightly/latest'
     sh("git tag | xargs git tag -d")
     # Add tag to git
@@ -332,7 +337,7 @@ def fabric(options)
     api_token: ENV['CRASHLYTICS_API_TOKEN'],
     build_secret: ENV['CRASHLYTICS_BUILD_SECRET'],
     notifications: "YES",
-    notes: jira_only_changelog(options),
+    notes: fabric_notes(options),
     debug: true,
     ipa_path: "#{options[:sheme]}.ipa",
     groups: crashlytics_groups
@@ -361,10 +366,12 @@ end
 
 def testflight(options)
   # Uploading the final IPA file to Testflight (without distribution)
+  ENV["FASTLANE_ITUNES_TRANSPORTER_USE_SHELL_SCRIPT"] = "1"
   ENV["DELIVER_ITMSTRANSPORTER_ADDITIONAL_UPLOAD_PARAMETERS"] = "-t DAV"
   pilot(
     skip_submission: true,
-    changelog: jira_only_changelog(options)
+    changelog: jira_only_changelog(options),
+    skip_waiting_for_build_processing: true
   )
 end
 
@@ -433,9 +440,18 @@ def ramb_changelog(options)
   changelog ||= 'no changes'
 end
 
+def fabric_notes(options)
+  current_branch = options[:branch]
+  commit = last_git_commit()
+  short_hash = commit[:abbreviated_commit_hash]
+  jira_changelog = jira_only_changelog(options)
+  changelog = "Branch: #{current_branch} (#{short_hash})\n"
+  changelog += jira_changelog
+end
+
 def jira_only_changelog(options)
   raw_changelog = ramb_raw_changelog(options)
-  return "empty" unless raw_changelog != nil
+  return "Jira: empty" unless raw_changelog != nil
 
   regexp = Regexp.new("(#{options[:jira_project]}-[0-9]*)(?:.*\#comment (.*))?").freeze
 
