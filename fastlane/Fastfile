@@ -98,9 +98,6 @@ def obtain_config(options)
   ENV['FASTLANE_TEAM_ID'] = options[:team_id]
   options[:xcode_args] = "DEVELOPMENT_TEAM=#{options[:team_id]}"
 
-  options[:provisioning_name] = "#{options[:app_identifier]}_#{options[:team_id]}"
-
-
   # Setting up the folder for FTP upload
   options[:ftp_path] = options[:nightly] ? 'nightly' : 'dev'
 
@@ -122,6 +119,8 @@ def obtain_config(options)
 
   options[:app_identifier] = options[:enterprise] ? ENV['ENTERPRISE_APP_IDENTIFIER'] : ENV['APP_IDENTIFIER'] 
   options[:app_identifiers] ||= [options[:app_identifier]]
+  
+  options[:provisioning_name] = "#{options[:app_identifier]}_#{options[:team_id]}"
 
   options[:target_patterns] = ["^#{ENV['SCHEME']}$"] if !options[:target_patterns] && ENV['SCHEME']
   options[:app_plists] = [ENV['INFO_PLIST_PATH']] if !options[:app_plists] && ENV['INFO_PLIST_PATH']
